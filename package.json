@@ -1,0 +1,29 @@
+{
+  "name": "youtube-mp3-downloader",
+  "version": "1.0.0",
+  "description": "A web application to download YouTube videos as MP3 using RapidAPI.",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "keywords": [
+    "youtube",
+    "mp3",
+    "downloader",
+    "rapidapi",
+    "express"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "latest",
+    "express": "latest",
+    "fs": "0.0.1-security",
+    "path": "latest"
+  },
+  "devDependencies": {
+    "nodemon": "latest"
+  }
+}
