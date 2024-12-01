@@ -163,6 +163,127 @@ app.get('/', (req, res) => {
   `);
 });
         
+app.get('/api-docs', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>API Documentation</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          line-height: 1.6;
+          margin: 0;
+          padding: 20px;
+          background-color: #f4f4f9;
+          color: #333;
+        }
+
+        h1 {
+          color: #007BFF;
+        }
+
+        code {
+          background-color: #e8e8e8;
+          padding: 2px 4px;
+          border-radius: 3px;
+          font-family: monospace;
+        }
+
+        pre {
+          background-color: #f8f8f8;
+          padding: 10px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          overflow-x: auto;
+        }
+
+        footer {
+          margin-top: 30px;
+          font-size: 14px;
+          color: gray;
+          text-align: center;
+        }
+
+        footer a {
+          color: #007BFF;
+          text-decoration: none;
+        }
+
+        footer a:hover {
+          text-decoration: underline;
+        }
+      </style>
+    </head>
+    <body>
+      <h1>API Documentation</h1>
+      <h2>Endpoint: <code>https://ytdl-api-3w14.onrender.com/dl</code></h2>
+      <p>Retrieve a downloadable MP3 link for a given YouTube video.</p>
+
+      <h3>HTTP Method</h3>
+      <p><code>GET</code></p>
+
+      <h3>Query Parameters</h3>
+      <table border="1" cellpadding="10" cellspacing="0">
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>Type</th>
+            <th>Required</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>url</code></td>
+            <td>string</td>
+            <td>Yes</td>
+            <td>The full YouTube video URL (e.g., <code>https://www.youtube.com/watch?v=VIDEO_ID</code>).</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Response</h3>
+      <h4>Success</h4>
+      <pre>
+{
+  "link": "https://malpha.123tokyo.xyz/get.php/1/bb/dQw4w9WgXcQ.mp3?cid=MmEwMTo0Zjg6YzAxMjozMmVlOjoxfE5BfERF&h=UtuqjcteasOFs8z-z5sMpw&s=1733063589&n=Rick%20Astley%20-%20Never%20Gonna%20Give%20You%20Up%20%28Official%20Music%20Video%29&uT=R&uN=a2FuMDk1ODMwMDM0MQ%3D%3D",
+  "title": "Rick Astley - Never Gonna Give You Up (Official Music Video)",
+  "filesize": 3575203,
+  "progress": 0,
+  "duration": 212.06204147058,
+  "status": "ok",
+  "msg": "success"
+}
+      </pre>
+
+      <h4>Error</h4>
+      <pre>
+{
+  "error": "Error message here"
+}
+      </pre>
+
+      <h3>Example Request</h3>
+      <p>Access via browser or a tool like <code>curl</code>:</p>
+      <pre>
+GET /dl?url=https://youtu.be/dQw4w9WgXcQ?si=u84CSHQeapTSuGY1
+      </pre>
+
+      <h3>Example cURL</h3>
+      <pre>
+curl -X GET "https://ytdl-api-3w14.onrender.com/dl?url=https://youtu.be/dQw4w9WgXcQ?si=u84CSHQeapTSuGY1"
+      </pre>
+
+      <footer>
+        Developer by <a href="https://github.com/Darkness-cpu" target="_blank">Darkness-cpu</a>
+      </footer>
+    </body>
+    </html>
+  `);
+});
 
 
 // Endpoint for downloading YouTube MP3
