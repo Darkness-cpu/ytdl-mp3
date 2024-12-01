@@ -33,7 +33,7 @@ app.use(express.json());
 app.use(compression());
 
 // Serve a simple dashboard
-app.get('/dashboard', (req, res) => {
+app.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
     <html lang="en">
