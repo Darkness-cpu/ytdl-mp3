@@ -20,7 +20,6 @@ const getNextApiKey = () => {
   return apiKeys[currentKeyIndex];
 };
 
-// YouTube URL parser
 const youtube_parser = (url) => {
   url = url.replace(/\?si=.*/, '');
   const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
@@ -31,7 +30,99 @@ const youtube_parser = (url) => {
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(compression()); // Enable compression
+app.use(compression());
+
+// Serve a simple dashboard
+app.get('/', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>YouTube MP3 Downloader</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          text-align: center;
+          margin: 0;
+          padding: 0;
+        }
+        h1 {
+          margin-top: 20px;
+          font-size: 24px;
+        }
+        p {
+          margin: 10px;
+        }
+        input, button {
+          padding: 10px;
+          font-size: 16px;
+          margin: 5px;
+          width: 90%;
+          max-width: 400px;
+        }
+        button {
+          background-color: #007BFF;
+          color: white;
+          border: none;
+          cursor: pointer;
+          width: 50%;
+          max-width: 200px;
+        }
+        button:hover {
+          background-color: #0056b3;
+        }
+        #result {
+          margin-top: 20px;
+          font-size: 16px;
+        }
+        /* Responsive Design */
+        @media (max-width: 600px) {
+          h1 {
+            font-size: 20px;
+          }
+          input, button {
+            font-size: 14px;
+            padding: 8px;
+          }
+          button {
+            width: 70%;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <h1>YouTube MP3 Downloader</h1>
+      <p>Enter a YouTube URL to download the MP3</p>
+      <input type="text" id="youtubeUrl" placeholder="Enter YouTube URL">
+      <button onclick="downloadMp3()">Search</button>
+      <p id="result"></p>
+      <script>
+        async function downloadMp3() {
+          const url = document.getElementById('youtubeUrl').value;
+          if (!url) {
+            document.getElementById('result').innerText = 'Please enter a URL.';
+            return;
+          }
+          document.getElementById('result').innerText = 'Processing...';
+          try {
+            const response = await fetch(\`/dl?url=\${encodeURIComponent(url)}\`);
+            const data = await response.json();
+            if (data.link) {
+              document.getElementById('result').innerHTML = \`<a href="\${data.link}" target="_blank">Download</a>\`;
+            } else {
+              document.getElementById('result').innerText = 'Failed to get the MP3 link.';
+            }
+          } catch (error) {
+            document.getElementById('result').innerText = 'Error: ' + error.message;
+          }
+        }
+      </script>
+    </body>
+    </html>
+  `);
+});
 
 // Endpoint for downloading YouTube MP3
 app.get('/dl', async (req, res) => {
