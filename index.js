@@ -42,55 +42,86 @@ app.get('/', (req, res) => {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>YouTube MP3 Downloader</title>
       <style>
+        /* Global Styles */
         body {
           font-family: Arial, sans-serif;
           text-align: center;
           margin: 0;
           padding: 0;
+          background-color: #f9f9f9;
+          color: #333;
         }
+
+        /* Header */
         h1 {
           margin-top: 20px;
           font-size: 24px;
+          color: #007BFF;
         }
+
         p {
           margin: 10px;
+          font-size: 16px;
         }
+
+        /* Input and Button Styles */
         input, button {
           padding: 10px;
           font-size: 16px;
           margin: 5px;
           width: 90%;
           max-width: 400px;
+          box-sizing: border-box;
         }
+
         button {
           background-color: #007BFF;
           color: white;
           border: none;
+          border-radius: 5px;
           cursor: pointer;
           width: 50%;
           max-width: 200px;
         }
+
         button:hover {
           background-color: #0056b3;
         }
+
+        /* Result Section */
         #result {
           margin-top: 20px;
           font-size: 16px;
+          color: #555;
         }
+
+        /* Footer */
         footer {
           margin-top: 30px;
           font-size: 14px;
           color: gray;
         }
+
+        footer a {
+          color: #007BFF;
+          text-decoration: none;
+        }
+
+        footer a:hover {
+          text-decoration: underline;
+        }
+
         /* Responsive Design */
         @media (max-width: 600px) {
           h1 {
             font-size: 20px;
           }
+
           input, button {
             font-size: 14px;
             padding: 8px;
           }
+
           button {
             width: 70%;
           }
@@ -101,7 +132,7 @@ app.get('/', (req, res) => {
       <h1>YouTube MP3 Downloader</h1>
       <p>Enter a YouTube URL to download the MP3</p>
       <input type="text" id="youtubeUrl" placeholder="Enter YouTube URL">
-      <button onclick="downloadMp3()">Search</button>
+      <button onclick="downloadMp3()">Download MP3</button>
       <p id="result"></p>
       <footer>
         Dev by <a href="https://github.com/mistakes333" target="_blank">mistakes333</a>
@@ -115,10 +146,10 @@ app.get('/', (req, res) => {
           }
           document.getElementById('result').innerText = 'Processing...';
           try {
-            const response = await fetch(\`/dl?url=\${encodeURIComponent(url)}\`);
+            const response = await fetch(\`/download?url=\${encodeURIComponent(url)}\`);
             const data = await response.json();
             if (data.link) {
-              document.getElementById('result').innerHTML = \`<a href="\${data.link}" target="_blank">Download</a>\`;
+              document.getElementById('result').innerHTML = \`<a href="\${data.link}" target="_blank">Download MP3</a>\`;
             } else {
               document.getElementById('result').innerText = 'Failed to get the MP3 link.';
             }
@@ -131,6 +162,7 @@ app.get('/', (req, res) => {
     </html>
   `);
 });
+
 
 // Endpoint for downloading YouTube MP3
 app.get('/dl', async (req, res) => {
