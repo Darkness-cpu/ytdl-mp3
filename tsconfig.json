@@ -10,7 +10,7 @@
     "resolveJsonModule": true,
     "outDir": "dist",
     "strict": true,
-    "types": ["node", "cors", "express","compression","axios"],
+    //"types": ["node", "cors", "express","compression","axios"],
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
