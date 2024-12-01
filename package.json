@@ -20,8 +20,8 @@
   "dependencies": {
     "axios": "latest",
     "express": "latest",
-    "fs": "0.0.1-security",
-    "path": "latest"
+    "compression": "latest",
+    "cors": "latest"
   },
   "devDependencies": {
     "nodemon": "latest"
