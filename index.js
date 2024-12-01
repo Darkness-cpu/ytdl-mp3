@@ -144,14 +144,14 @@ app.get('/', (req, res) => {
             document.getElementById('result').innerText = 'Please enter a URL.';
             return;
           }
-          document.getElementById('result').innerText = 'Processing...';
+          document.getElementById('result').innerText = 'กำลังประมวลผล...';
           try {
             const response = await fetch(\`/dl?url=\${encodeURIComponent(url)}\`);
             const data = await response.json();
             if (data.link) {
               document.getElementById('result').innerHTML = \`<a href="\${data.link}" target="_blank">Download</a>\`;
             } else {
-              document.getElementById('result').innerText = 'Failed to get the MP3 link.';
+              document.getElementById('result').innerText = 'ไม่สามารถรับลิงก์ MP3 ได้;
             }
           } catch (error) {
             document.getElementById('result').innerText = 'Error: ' + error.message;
@@ -193,11 +193,11 @@ app.get('/dl', async (req, res) => {
     res.json(response.data);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to fetch MP3' });
+    res.status(500).json({ error: 'ไม่สามารถดึงข้อมูล mp3 ได้' });
   }
 });
 
 // Start the server
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  console.log(`Server is running on port:${port}`);
 });
