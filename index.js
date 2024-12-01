@@ -164,7 +164,7 @@ app.get('/', (req, res) => {
 });
 
 // Endpoint for downloading YouTube MP3
-app.get('/download', async (req, res) => {
+app.get('/dl', async (req, res) => {
   const url = req.query.url;
 
   if (!url) {
