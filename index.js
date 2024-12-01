@@ -33,7 +33,7 @@ app.use(express.json());
 app.use(compression());
 
 // Serve a simple dashboard
-app.get('/', (req, res) => {
+app.get('/dashboard', (req, res) => {
   res.send(`
     <!DOCTYPE html>
     <html lang="en">
@@ -77,6 +77,11 @@ app.get('/', (req, res) => {
           margin-top: 20px;
           font-size: 16px;
         }
+        footer {
+          margin-top: 30px;
+          font-size: 14px;
+          color: gray;
+        }
         /* Responsive Design */
         @media (max-width: 600px) {
           h1 {
@@ -98,6 +103,9 @@ app.get('/', (req, res) => {
       <input type="text" id="youtubeUrl" placeholder="Enter YouTube URL">
       <button onclick="downloadMp3()">Search</button>
       <p id="result"></p>
+      <footer>
+        Dev by <a href="https://github.com/mistakes333" target="_blank">mistakes333</a>
+      </footer>
       <script>
         async function downloadMp3() {
           const url = document.getElementById('youtubeUrl').value;
