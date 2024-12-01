@@ -2,6 +2,8 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const compression = require('compression');
+const swaggerUi = require('swagger-ui-express');
+const swaggerJsdoc = require('swagger-jsdoc');
 
 const app = express();
 const port = 3000;
@@ -27,6 +29,27 @@ const youtube_parser = (url) => {
   return match && match[7]?.length === 11 ? match[7] : false;
 };
 
+// Swagger setup
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'YouTube MP3 Downloader API',
+      version: '1.0.0',
+      description: 'API to download MP3 files from YouTube videos.',
+    },
+    servers: [
+      {
+        url: 'https://ytdl-api-3w14.onrender.com',
+      },
+    ],
+  },
+  apis: ['./index.js'], // Path to the API docs (current file).
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -42,100 +65,27 @@ app.get('/', (req, res) => {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>YouTube MP3 Downloader</title>
       <style>
-        /* Global Styles */
-        body {
-          font-family: Arial, sans-serif;
-          text-align: center;
-          margin: 0;
-          padding: 0;
-          background-color: #f9f9f9;
-          color: #333;
-        }
-
-        /* Header */
-        h1 {
-          margin-top: 20px;
-          font-size: 24px;
-          color: #007BFF;
-        }
-
-        p {
-          margin: 10px;
-          font-size: 16px;
-        }
-
-        /* Input and Button Styles */
-        input, button {
-          padding: 10px;
-          font-size: 16px;
-          margin: 5px;
-          width: 90%;
-          max-width: 400px;
-          box-sizing: border-box;
-        }
-
-        button {
-          background-color: #007BFF;
-          color: white;
-          border: none;
-          border-radius: 5px;
-          cursor: pointer;
-          width: 50%;
-          max-width: 200px;
-        }
-
-        button:hover {
-          background-color: #0056b3;
-        }
-
-        /* Result Section */
-        #result {
-          margin-top: 20px;
-          font-size: 16px;
-          color: #555;
-        }
-
-        /* Footer */
-        footer {
-          margin-top: 30px;
-          font-size: 14px;
-          color: gray;
-        }
-
-        footer a {
-          color: #007BFF;
-          text-decoration: none;
-        }
-
-        footer a:hover {
-          text-decoration: underline;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 600px) {
-          h1 {
-            font-size: 20px;
-          }
-
-          input, button {
-            font-size: 14px;
-            padding: 8px;
-          }
-
-          button {
-            width: 70%;
-          }
-        }
+        body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 0; background-color: #f9f9f9; color: #333; }
+        h1 { margin-top: 20px; font-size: 24px; color: #007BFF; }
+        p { margin: 10px; font-size: 16px; }
+        input, button { padding: 10px; font-size: 16px; margin: 5px; width: 90%; max-width: 400px; box-sizing: border-box; }
+        button { background-color: #007BFF; color: white; border: none; border-radius: 5px; cursor: pointer; width: 50%; max-width: 200px; }
+        button:hover { background-color: #0056b3; }
+        #result { margin-top: 20px; font-size: 16px; color: #555; }
+        footer { margin-top: 30px; font-size: 14px; color: gray; }
+        footer a { color: #007BFF; text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+        @media (max-width: 600px) { h1 { font-size: 20px; } input, button { font-size: 14px; padding: 8px; } button { width: 70%; } }
       </style>
     </head>
     <body>
       <h1>YouTube MP3 Downloader</h1>
       <p>Enter a YouTube URL to download the MP3</p>
       <input type="text" id="youtubeUrl" placeholder="Enter YouTube URL">
-      <button onclick="downloadMp3()">ตรวจสอบ</button>
+      <button onclick="downloadMp3()">Download MP3</button>
       <p id="result"></p>
       <footer>
-        Developer by <a href="https://github.com/Darkness-cpu" target="_blank">Darkness-cpu</a>
+        Dev by <a href="https://github.com/mistakes333" target="_blank">mistakes333</a>
       </footer>
       <script>
         async function downloadMp3() {
@@ -144,14 +94,14 @@ app.get('/', (req, res) => {
             document.getElementById('result').innerText = 'Please enter a URL.';
             return;
           }
-          document.getElementById('result').innerText = 'กำลังประมวลผล...';
+          document.getElementById('result').innerText = 'Processing...';
           try {
-            const response = await fetch(\`/dl?url=\${encodeURIComponent(url)}\`);
+            const response = await fetch(\`/download?url=\${encodeURIComponent(url)}\`);
             const data = await response.json();
             if (data.link) {
-              document.getElementById('result').innerHTML = \`<a href="\${data.link}" target="_blank">Download</a>\`;
+              document.getElementById('result').innerHTML = \`<a href="\${data.link}" target="_blank">Download MP3</a>\`;
             } else {
-              document.getElementById('result').innerText = 'ไม่สามารถรับลิงก์ MP3 ได้;
+              document.getElementById('result').innerText = 'Failed to get the MP3 link.';
             }
           } catch (error) {
             document.getElementById('result').innerText = 'Error: ' + error.message;
@@ -163,9 +113,41 @@ app.get('/', (req, res) => {
   `);
 });
 
-
-// Endpoint for downloading YouTube MP3
-app.get('/dl', async (req, res) => {
+/**
+ * @swagger
+ * /download:
+ *   get:
+ *     summary: Download YouTube MP3
+ *     description: Takes a YouTube URL and returns a downloadable MP3 link.
+ *     parameters:
+ *       - in: query
+ *         name: url
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The full YouTube video URL.
+ *     responses:
+ *       200:
+ *         description: A downloadable MP3 link.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 link:
+ *                   type: string
+ *                 title:
+ *                   type: string
+ *                 thumbnail:
+ *                   type: string
+ *                 duration:
+ *                   type: string
+ *       400:
+ *         description: Invalid YouTube URL or missing query parameter.
+ *       500:
+ *         description: Server error or API failure.
+ */
+app.get('/download', async (req, res) => {
   const url = req.query.url;
 
   if (!url) {
@@ -193,11 +175,12 @@ app.get('/dl', async (req, res) => {
     res.json(response.data);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'ไม่สามารถดึงข้อมูล mp3 ได้' });
+    res.status(500).json({ error: 'Failed to fetch MP3' });
   }
 });
 
 // Start the server
 app.listen(port, () => {
-  console.log(`Server is running on port:${port}`);
+  console.log(`Server is running on http://localhost:${port}`);
+  console.log(`Swagger docs available at http://localhost:${port}/api-docs`);
 });
