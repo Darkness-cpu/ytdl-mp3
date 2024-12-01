@@ -2,6 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const compression = require('compression');
+const bodyParser = require('body-parser');
 
 const app = express();
 const port = 4000;
@@ -29,8 +30,9 @@ const youtube_parser = (url) => {
 
 // Middleware
 app.use(cors());
-app.use(express.json());
 app.use(compression());
+app.use(bodyParser.json()); // Parse JSON payloads
+app.use(bodyParser.urlencoded({ extended: true })); // Parse URL-encoded payloads
 
 // Serve a simple dashboard
 app.get('/', (req, res) => {
@@ -132,10 +134,10 @@ app.get('/', (req, res) => {
       <h1>YouTube MP3 Downloader</h1>
       <p>Enter a YouTube URL to download the MP3</p>
       <input type="text" id="youtubeUrl" placeholder="Enter YouTube URL">
-      <button onclick="downloadMp3()">Search</button>
+      <button onclick="downloadMp3()">Download MP3</button>
       <p id="result"></p>
       <footer>
-        Develop By <a href="https://github.com/Darkness-cpu" target="_blank">Darkness-cpu</a>
+        Developer by <a href="https://github.com/Darkness-cpu" target="_blank">Darkness-cpu</a>
       </footer>
       <script>
         async function downloadMp3() {
@@ -198,5 +200,5 @@ app.get('/dl', async (req, res) => {
 
 // Start the server
 app.listen(port, () => {
-  console.log(`Server is running on port:${port}`);
+  console.log(`Server is running on http://localhost:${port}`);
 });
