@@ -5,10 +5,9 @@
     "moduleResolution": "Node",
     "allowJs": true,
     "checkJs": true,
-    "maxNodeModuleJsDepth": 3,
+    "maxNodeModuleJsDepth": 1,
     "removeComments": true,
     "resolveJsonModule": true,
-    "rootDir": "src",
     "outDir": "dist",
     "strict": true,
     "types": ["node", "cors", "express","compression","axios"],
@@ -16,6 +15,6 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src"],
   "exclude": ["node_modules"]
 }
