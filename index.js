@@ -5,7 +5,7 @@ const compression = require('compression');
 const bodyParser = require('body-parser');
 
 const app = express();
-const port = 4000;
+const port = 3000;
 
 // API keys and rotation logic
 const apiKeys = [
