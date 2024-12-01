@@ -82,10 +82,10 @@ app.get('/', (req, res) => {
       <h1>YouTube MP3 Downloader</h1>
       <p>Enter a YouTube URL to download the MP3</p>
       <input type="text" id="youtubeUrl" placeholder="Enter YouTube URL">
-      <button onclick="downloadMp3()">Download MP3</button>
+      <button onclick="downloadMp3()">Search</button>
       <p id="result"></p>
       <footer>
-        Dev by <a href="https://github.com/mistakes333" target="_blank">mistakes333</a>
+        Dev by <a href="https://github.com/Darkness-cpu" target="_blank">Darkness-cpu</a>
       </footer>
       <script>
         async function downloadMp3() {
@@ -96,10 +96,10 @@ app.get('/', (req, res) => {
           }
           document.getElementById('result').innerText = 'Processing...';
           try {
-            const response = await fetch(\`/download?url=\${encodeURIComponent(url)}\`);
+            const response = await fetch(\`/dl?url=\${encodeURIComponent(url)}\`);
             const data = await response.json();
             if (data.link) {
-              document.getElementById('result').innerHTML = \`<a href="\${data.link}" target="_blank">Download MP3</a>\`;
+              document.getElementById('result').innerHTML = \`<a href="\${data.link}" target="_blank">Download</a>\`;
             } else {
               document.getElementById('result').innerText = 'Failed to get the MP3 link.';
             }
@@ -115,7 +115,7 @@ app.get('/', (req, res) => {
 
 /**
  * @swagger
- * /download:
+ * /dl:
  *   get:
  *     summary: Download YouTube MP3
  *     description: Takes a YouTube URL and returns a downloadable MP3 link.
@@ -138,8 +138,6 @@ app.get('/', (req, res) => {
  *                   type: string
  *                 title:
  *                   type: string
- *                 thumbnail:
- *                   type: string
  *                 duration:
  *                   type: string
  *       400:
@@ -147,7 +145,7 @@ app.get('/', (req, res) => {
  *       500:
  *         description: Server error or API failure.
  */
-app.get('/download', async (req, res) => {
+app.get('/dl', async (req, res) => {
   const url = req.query.url;
 
   if (!url) {
