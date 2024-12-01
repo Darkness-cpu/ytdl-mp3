@@ -14,7 +14,8 @@
     "axios": "latest",
     "compression": "latest",
     "cors": "latest",
-    "express": "latest"
+    "express": "latest",
+    "body-parser": "latest"
   },
   "devDependencies": {
     "nodemon": "latest"
