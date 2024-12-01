@@ -14,9 +14,7 @@
     "axios": "latest",
     "compression": "latest",
     "cors": "latest",
-    "express": "latest",
-    "swagger-ui-express": "latest",
-    "swagger-jsdoc": "latest"
+    "express": "latest"
   },
   "devDependencies": {
     "nodemon": "latest"
