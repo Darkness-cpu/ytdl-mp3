@@ -4,7 +4,7 @@ const cors = require('cors');
 const compression = require('compression');
 
 const app = express();
-const port = 3000;
+const port = 4000;
 
 // API keys and rotation logic
 const apiKeys = [
