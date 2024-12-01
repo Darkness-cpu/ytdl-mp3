@@ -1,29 +1,28 @@
 {
   "name": "youtube-mp3-downloader",
   "version": "1.0.0",
-  "description": "A web application to download YouTube videos as MP3 using RapidAPI.",
-  "main": "index.js",
+  "description": "A web API for downloading YouTube videos as MP3 files using TypeScript and RapidAPI.",
+  "main": "dist/index.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc"
   },
-  "keywords": [
-    "youtube",
-    "mp3",
-    "downloader",
-    "rapidapi",
-    "express"
-  ],
-  "author": "Your Name",
+  "author": "Darkness-cpu",
   "license": "MIT",
   "dependencies": {
     "axios": "latest",
-    "express": "latest",
     "compression": "latest",
-    "cors": "latest"
+    "cors": "latest",
+    "express": "latest"
   },
   "devDependencies": {
-    "nodemon": "latest"
+    "@types/compression": "latest",
+    "@types/cors": "latest",
+    "@types/express": "latest",
+    "@types/node": "^22",
+    "tsx": "latest",
+    "typescript": "latest"
   }
 }
