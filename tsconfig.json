@@ -8,13 +8,12 @@
     "maxNodeModuleJsDepth": 3,
     "removeComments": true,
     "resolveJsonModule": true,
+    "rootDir": "src",
     "outDir": "dist",
     "strict": true,
     "types": ["node", "core", "express","compression","axios"]
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
-  },
-  "include": ["src"],
-  "exclude": ["node_modules"]
+  }
 }
