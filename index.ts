@@ -1,13 +1,10 @@
-const express = require('express');
-const axios = require('axios');
-const cors = require('cors');
-const compression = require('compression');
-
-const app = express();
-const port = 3000;
+import express, { Request, Response } from 'express';
+import axios from 'axios';
+import cors from 'cors';
+import compression from 'compression';
 
 // API keys and rotation logic
-const apiKeys = [
+const apiKeys: string[] = [
   'db751b0a05msh95365b14dcde368p12dbd9jsn440b1b8ae7cb',
   '0649dc83c2msh88ac949854b30c2p1f2fe8jsn871589450eb3',
   '0e88d5d689msh145371e9bc7d2d8p17eebejsn8ff825d6291f',
@@ -15,17 +12,21 @@ const apiKeys = [
 ];
 let currentKeyIndex = 0;
 
-const getNextApiKey = () => {
+const getNextApiKey = (): string => {
   currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length;
   return apiKeys[currentKeyIndex];
 };
 
-const youtube_parser = (url) => {
+// Helper function to parse YouTube video IDs
+const youtubeParser = (url: string): string | false => {
   url = url.replace(/\?si=.*/, '');
   const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
   const match = url.match(regExp);
   return match && match[7]?.length === 11 ? match[7] : false;
 };
+
+const app = express();
+const port = 3000;
 
 // Middleware
 app.use(cors());
@@ -33,7 +34,7 @@ app.use(express.json());
 app.use(compression());
 
 // Serve a simple dashboard
-app.get('/', (req, res) => {
+app.get('/dashboard', (req: Request, res: Response) => {
   res.send(`
     <!DOCTYPE html>
     <html lang="en">
@@ -132,10 +133,10 @@ app.get('/', (req, res) => {
       <h1>YouTube MP3 Downloader</h1>
       <p>Enter a YouTube URL to download the MP3</p>
       <input type="text" id="youtubeUrl" placeholder="Enter YouTube URL">
-      <button onclick="downloadMp3()">ตรวจสอบ</button>
+      <button onclick="downloadMp3()">Download MP3</button>
       <p id="result"></p>
       <footer>
-        Developer by <a href="https://github.com/Darkness-cpu" target="_blank">Darkness-cpu</a>
+        Dev by <a href="https://github.com/mistakes333" target="_blank">mistakes333</a>
       </footer>
       <script>
         async function downloadMp3() {
@@ -144,14 +145,14 @@ app.get('/', (req, res) => {
             document.getElementById('result').innerText = 'Please enter a URL.';
             return;
           }
-          document.getElementById('result').innerText = 'กำลังประมวลผล...';
+          document.getElementById('result').innerText = 'Processing...';
           try {
             const response = await fetch(\`/dl?url=\${encodeURIComponent(url)}\`);
             const data = await response.json();
             if (data.link) {
-              document.getElementById('result').innerHTML = \`<a href="\${data.link}" target="_blank">Download</a>\`;
+              document.getElementById('result').innerHTML = \`<a href="\${data.link}" target="_blank">Download MP3</a>\`;
             } else {
-              document.getElementById('result').innerText = 'ไม่สามารถรับลิงก์ MP3 ได้;
+              document.getElementById('result').innerText = 'Failed to get the MP3 link.';
             }
           } catch (error) {
             document.getElementById('result').innerText = 'Error: ' + error.message;
@@ -163,16 +164,15 @@ app.get('/', (req, res) => {
   `);
 });
 
-
 // Endpoint for downloading YouTube MP3
-app.get('/dl', async (req, res) => {
-  const url = req.query.url;
+app.get('/dl', async (req: Request, res: Response) => {
+  const url = req.query.url as string;
 
   if (!url) {
     return res.status(400).json({ error: 'Missing YouTube URL' });
   }
 
-  const videoId = youtube_parser(url);
+  const videoId = youtubeParser(url);
   if (!videoId) {
     return res.status(400).json({ error: 'Invalid YouTube URL' });
   }
@@ -193,11 +193,11 @@ app.get('/dl', async (req, res) => {
     res.json(response.data);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'ไม่สามารถดึงข้อมูล mp3 ได้' });
+    res.status(500).json({ error: 'Failed to fetch MP3' });
   }
 });
 
 // Start the server
 app.listen(port, () => {
-  console.log(`Server is running on port:${port}`);
+  console.log(`Server is running on http://localhost:${port}`);
 });
