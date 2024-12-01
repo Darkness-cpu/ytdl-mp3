@@ -11,9 +11,11 @@
     "rootDir": "src",
     "outDir": "dist",
     "strict": true,
-    "types": ["node", "cors", "express","compression","axios"]
+    "types": ["node", "cors", "express","compression","axios"],
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
-  }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules"]
 }
