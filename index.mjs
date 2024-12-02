@@ -73,7 +73,7 @@ const server = http.createServer((req, res) => {
         <input type="text" id="youtubeUrl" placeholder="Enter YouTube URL">
         <button onclick="downloadMp3()">Search</button>
         <p id="result"></p>
-        <footer>Dev by <a href="https://github.com/mistakes333" target="_blank">mistakes333</a></footer>
+        <footer>Developer by <a href="https://github.com/Darkness-cpu" target="_blank">Darkness-cpu</a></footer>
         <script>
           async function downloadMp3() {
             const url = document.getElementById('youtubeUrl').value;
