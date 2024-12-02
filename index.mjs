@@ -1,9 +1,11 @@
 import http from 'node:http';
 import { URL } from 'node:url';
 import axios from 'axios';
+import fs from 'fs';
 import zlib from 'node:zlib';
 
 const port = 3000;
+const logFilePath = './server.log';
 
 // API keys and rotation logic
 const apiKeys = [
@@ -39,6 +41,15 @@ const respondWithCompression = (res, statusCode, content, type = 'text/plain') =
   });
 };
 
+const logRequest = (message) => {
+  const logMessage = `[${new Date().toISOString()}] ${message}\n`;
+  fs.appendFile(logFilePath, logMessage, (err) => {
+    if (err) {
+      console.error('Failed to log the message', err);
+    }
+  });
+};
+
 const serveDashboard = (res) => {
   const html = `
     <!DOCTYPE html>
@@ -64,7 +75,7 @@ const serveDashboard = (res) => {
       <input type="text" id="youtubeUrl" placeholder="Enter YouTube URL">
       <button onclick="downloadMp3()">Search</button>
       <p id="result"></p>
-      <footer>Dev by <a href="https://github.com/mistakes333" target="_blank">mistakes333</a></footer>
+      <footer>Dev by <a href="https://github.com/Darkness-cpu" target="_blank">Darkness-cpu</a></footer>
       <script>
         async function downloadMp3() {
           const url = document.getElementById('youtubeUrl').value;
@@ -115,6 +126,7 @@ const handleDownload = async (res, url) => {
     const response = await axios.request(options);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(response.data));
+    logRequest(`Successfully downloaded MP3 for URL: ${url}`);
   } catch (error) {
     console.error(error.message);
     if (retries < 3) {
@@ -125,7 +137,19 @@ const handleDownload = async (res, url) => {
     }
     res.writeHead(500, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Failed to fetch MP3 after 3 retries' }));
+    logRequest(`Failed to download MP3 for URL: ${url} - Error: ${error.message}`);
   }
+};
+
+const serveLogger = (res) => {
+  fs.readFile(logFilePath, 'utf-8', (err, data) => {
+    if (err) {
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end('Error reading log file');
+      return;
+    }
+    respondWithCompression(res, 200, data, 'text/plain');
+  });
 };
 
 const server = http.createServer((req, res) => {
@@ -143,6 +167,8 @@ const server = http.createServer((req, res) => {
       return;
     }
     handleDownload(res, url);
+  } else if (path === '/logger') {
+    serveLogger(res);
   } else {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not Found');
@@ -152,3 +178,4 @@ const server = http.createServer((req, res) => {
 server.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
+
