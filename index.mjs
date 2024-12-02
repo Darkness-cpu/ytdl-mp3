@@ -26,6 +26,28 @@ const youtube_parser = (url) => {
   return match && match[7]?.length === 11 ? match[7] : false;
 };
 
+// Rate-limiting data structure
+const rateLimits = new Map();
+const RATE_LIMIT_WINDOW = 60000; // 1 minute window
+const MAX_REQUESTS = 5; // Max requests per window
+
+const isRateLimited = (ip) => {
+  const currentTime = Date.now();
+  const userRequests = rateLimits.get(ip) || [];
+
+  // Remove requests older than the RATE_LIMIT_WINDOW
+  const recentRequests = userRequests.filter(requestTime => currentTime - requestTime < RATE_LIMIT_WINDOW);
+
+  if (recentRequests.length >= MAX_REQUESTS) {
+    return true;
+  }
+
+  // Add current request time
+  recentRequests.push(currentTime);
+  rateLimits.set(ip, recentRequests);
+  return false;
+};
+
 const respondWithCompression = (res, statusCode, content, type = 'text/plain') => {
   res.writeHead(statusCode, {
     'Content-Type': type,
@@ -103,7 +125,13 @@ const serveDashboard = (res) => {
   respondWithCompression(res, 200, html, 'text/html');
 };
 
-const handleDownload = async (res, url) => {
+const handleDownload = async (res, url, ip) => {
+  if (isRateLimited(ip)) {
+    res.writeHead(429, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Too many requests. Please try again later.' }));
+    return;
+  }
+
   const videoId = youtube_parser(url);
   if (!videoId) {
     res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -132,7 +160,7 @@ const handleDownload = async (res, url) => {
     if (retries < 3) {
       retries++;
       console.log(`Retrying... attempt ${retries}`);
-      handleDownload(res, url);  // Retry the download
+      handleDownload(res, url, ip);  // Retry the download
       return;
     }
     res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -156,6 +184,7 @@ const server = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
   const path = parsedUrl.pathname;
   const query = Object.fromEntries(parsedUrl.searchParams.entries());
+  const ip = req.connection.remoteAddress; // IP of the client
 
   if (path === '/') {
     serveDashboard(res);
@@ -163,10 +192,10 @@ const server = http.createServer((req, res) => {
     const { url } = query;
     if (!url) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Missing YouTube URL' }));
+      res.end(JSON.stringify({ error: 'URL parameter is required' }));
       return;
     }
-    handleDownload(res, url);
+    handleDownload(res, url, ip);
   } else if (path === '/logger') {
     serveLogger(res);
   } else {
@@ -176,6 +205,6 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`);
+  console.log(`Server is running on http://localhost:${port}`);
 });
 
