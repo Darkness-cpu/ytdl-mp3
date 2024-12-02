@@ -13,6 +13,7 @@ const apiKeys = [
   'ea7a66dfaemshecacaabadeedebbp17b247jsn7966d78a3945',
 ];
 let currentKeyIndex = 0;
+let retries = 0; // Retry counter
 
 const getNextApiKey = () => apiKeys[(currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length)];
 
@@ -63,7 +64,7 @@ const serveDashboard = (res) => {
       <input type="text" id="youtubeUrl" placeholder="Enter YouTube URL">
       <button onclick="downloadMp3()">Search</button>
       <p id="result"></p>
-      <footer>Dev by <a href="https://github.com/Darkness-cpu" target="_blank">Darkness-cpu</a></footer>
+      <footer>Dev by <a href="https://github.com/mistakes333" target="_blank">mistakes333</a></footer>
       <script>
         async function downloadMp3() {
           const url = document.getElementById('youtubeUrl').value;
@@ -116,8 +117,14 @@ const handleDownload = async (res, url) => {
     res.end(JSON.stringify(response.data));
   } catch (error) {
     console.error(error.message);
+    if (retries < 3) {
+      retries++;
+      console.log(`Retrying... attempt ${retries}`);
+      handleDownload(res, url);  // Retry the download
+      return;
+    }
     res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Failed to fetch MP3' }));
+    res.end(JSON.stringify({ error: 'Failed to fetch MP3 after 3 retries' }));
   }
 };
 
