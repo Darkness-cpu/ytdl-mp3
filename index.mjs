@@ -1,21 +1,19 @@
 import http from 'node:http';
 import { URL } from 'node:url';
+import { readFile } from 'node:fs/promises';
 import axios from 'axios';
-import fs from 'fs';
 import zlib from 'node:zlib';
 
 const port = 3000;
-const logFilePath = './server.log';
 
-// API keys and rotation logic
 const apiKeys = [
   'db751b0a05msh95365b14dcde368p12dbd9jsn440b1b8ae7cb',
   '0649dc83c2msh88ac949854b30c2p1f2fe8jsn871589450eb3',
   '0e88d5d689msh145371e9bc7d2d8p17eebejsn8ff825d6291f',
   'ea7a66dfaemshecacaabadeedebbp17b247jsn7966d78a3945',
 ];
+
 let currentKeyIndex = 0;
-let retries = 0; // Retry counter
 
 const getNextApiKey = () => apiKeys[(currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length)];
 
@@ -24,28 +22,6 @@ const youtube_parser = (url) => {
   const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
   const match = url.match(regExp);
   return match && match[7]?.length === 11 ? match[7] : false;
-};
-
-// Rate-limiting data structure
-const rateLimits = new Map();
-const RATE_LIMIT_WINDOW = 60000; // 1 minute window
-const MAX_REQUESTS = 5; // Max requests per window
-
-const isRateLimited = (ip) => {
-  const currentTime = Date.now();
-  const userRequests = rateLimits.get(ip) || [];
-
-  // Remove requests older than the RATE_LIMIT_WINDOW
-  const recentRequests = userRequests.filter(requestTime => currentTime - requestTime < RATE_LIMIT_WINDOW);
-
-  if (recentRequests.length >= MAX_REQUESTS) {
-    return true;
-  }
-
-  // Add current request time
-  recentRequests.push(currentTime);
-  rateLimits.set(ip, recentRequests);
-  return false;
 };
 
 const respondWithCompression = (res, statusCode, content, type = 'text/plain') => {
@@ -59,15 +35,6 @@ const respondWithCompression = (res, statusCode, content, type = 'text/plain') =
       res.end('Compression error');
     } else {
       res.end(compressed);
-    }
-  });
-};
-
-const logRequest = (message) => {
-  const logMessage = `[${new Date().toISOString()}] ${message}\n`;
-  fs.appendFile(logFilePath, logMessage, (err) => {
-    if (err) {
-      console.error('Failed to log the message', err);
     }
   });
 };
@@ -97,7 +64,7 @@ const serveDashboard = (res) => {
       <input type="text" id="youtubeUrl" placeholder="Enter YouTube URL">
       <button onclick="downloadMp3()">Search</button>
       <p id="result"></p>
-      <footer>Dev by <a href="https://github.com/Darkness-cpu" target="_blank">Darkness-cpu</a></footer>
+      <footer>Dev by <a href="https://github.com/mistakes333" target="_blank">mistakes333</a></footer>
       <script>
         async function downloadMp3() {
           const url = document.getElementById('youtubeUrl').value;
@@ -125,13 +92,42 @@ const serveDashboard = (res) => {
   respondWithCompression(res, 200, html, 'text/html');
 };
 
-const handleDownload = async (res, url, ip) => {
-  if (isRateLimited(ip)) {
-    res.writeHead(429, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Too many requests. Please try again later.' }));
-    return;
-  }
+const serveWhitelistPage = async (res) => {
+  try {
+    const data = await readFile('allow.json', 'utf-8');
+    const { allowedDomains } = JSON.parse(data);
 
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Whitelist Domains</title>
+        <style>
+          body { font-family: Arial, sans-serif; background-color: #f9f9f9; margin: 0; padding: 20px; color: #333; }
+          h1 { font-size: 24px; text-align: center; color: #007BFF; }
+          ul { max-width: 500px; margin: 20px auto; padding: 0; list-style: none; }
+          li { background: #007BFF; color: white; margin: 5px 0; padding: 10px; border-radius: 5px; }
+        </style>
+      </head>
+      <body>
+        <h1>Whitelist Domains</h1>
+        <ul>
+          ${allowedDomains.map((domain) => `<li>${domain}</li>`).join('')}
+        </ul>
+      </body>
+      </html>
+    `;
+    respondWithCompression(res, 200, html, 'text/html');
+  } catch (error) {
+    console.error('Error loading allow.json:', error.message);
+    res.writeHead(500, { 'Content-Type': 'text/plain' });
+    res.end('Failed to load whitelist page');
+  }
+};
+
+const handleDownload = async (res, url) => {
   const videoId = youtube_parser(url);
   if (!videoId) {
     res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -139,13 +135,12 @@ const handleDownload = async (res, url, ip) => {
     return;
   }
 
-  const apiKey = getNextApiKey();
   const options = {
     method: 'GET',
     url: 'https://youtube-mp36.p.rapidapi.com/dl',
     params: { id: videoId },
     headers: {
-      'x-rapidapi-key': apiKey,
+      'x-rapidapi-key': getNextApiKey(),
       'x-rapidapi-host': 'youtube-mp36.p.rapidapi.com',
     },
   };
@@ -154,37 +149,16 @@ const handleDownload = async (res, url, ip) => {
     const response = await axios.request(options);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(response.data));
-    logRequest(`Successfully downloaded MP3 for URL: ${url}`);
   } catch (error) {
-    console.error(error.message);
-    if (retries < 3) {
-      retries++;
-      console.log(`Retrying... attempt ${retries}`);
-      handleDownload(res, url, ip);  // Retry the download
-      return;
-    }
     res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Failed to fetch MP3 after 3 retries' }));
-    logRequest(`Failed to download MP3 for URL: ${url} - Error: ${error.message}`);
+    res.end(JSON.stringify({ error: 'Failed to fetch MP3 link' }));
   }
-};
-
-const serveLogger = (res) => {
-  fs.readFile(logFilePath, 'utf-8', (err, data) => {
-    if (err) {
-      res.writeHead(500, { 'Content-Type': 'text/plain' });
-      res.end('Error reading log file');
-      return;
-    }
-    respondWithCompression(res, 200, data, 'text/plain');
-  });
 };
 
 const server = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
   const path = parsedUrl.pathname;
   const query = Object.fromEntries(parsedUrl.searchParams.entries());
-  const ip = req.connection.remoteAddress; // IP of the client
 
   if (path === '/') {
     serveDashboard(res);
@@ -192,12 +166,12 @@ const server = http.createServer((req, res) => {
     const { url } = query;
     if (!url) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'URL parameter is required' }));
+      res.end(JSON.stringify({ error: 'Missing YouTube URL' }));
       return;
     }
-    handleDownload(res, url, ip);
-  } else if (path === '/logger') {
-    serveLogger(res);
+    handleDownload(res, url);
+  } else if (path === '/whitelist') {
+    serveWhitelistPage(res);
   } else {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not Found');
@@ -205,6 +179,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  console.log(`Server is running at http://localhost:${port}`);
 });
-
