@@ -20,6 +20,7 @@
   "dependencies": {
     "axios": "latest",
     "body-parser": "latest",
+    "cors": "latest",
     "compression": "latest",
     "express": "latest"
   },
