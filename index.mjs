@@ -2,13 +2,15 @@ import express from 'express';
 import axios from 'axios';
 import compression from 'compression';
 import bodyParser from 'body-parser';
+import cors from 'cors'; // นำเข้า CORS
 
 // Initialize the express app
 const app = express();
 
-// Use compression and body-parser middleware
-app.use(compression());
-app.use(bodyParser.json());
+// Use CORS, compression, and body-parser middleware
+app.use(cors()); // เปิดใช้งาน CORS
+app.use(compression()); // ใช้ compression middleware
+app.use(bodyParser.json()); // ใช้ body-parser สำหรับ JSON
 
 // Port
 const port = 3000;
@@ -33,7 +35,7 @@ const youtube_parser = (url) => {
 };
 
 // Endpoint to download MP3 from YouTube
-app.get('/dl', async (req, res) => {
+app.get('/download', async (req, res) => {
   const { url } = req.query;
 
   if (!url) {
@@ -91,7 +93,6 @@ app.get('/dl', async (req, res) => {
 });
 
 // Start the server
-
 app.listen(port, () => {
   console.log('Express server initialized');
 });
