@@ -1,19 +1,18 @@
 import http from 'node:http';
 import { URL } from 'node:url';
-import { readFile } from 'node:fs/promises';
 import axios from 'axios';
-import zlib from 'node:zlib';
 
 const port = 3000;
 
+// API keys and rotation logic
 const apiKeys = [
   'db751b0a05msh95365b14dcde368p12dbd9jsn440b1b8ae7cb',
   '0649dc83c2msh88ac949854b30c2p1f2fe8jsn871589450eb3',
   '0e88d5d689msh145371e9bc7d2d8p17eebejsn8ff825d6291f',
   'ea7a66dfaemshecacaabadeedebbp17b247jsn7966d78a3945',
 ];
-
 let currentKeyIndex = 0;
+let retries = 0; // Retry counter
 
 const getNextApiKey = () => apiKeys[(currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length)];
 
@@ -24,109 +23,6 @@ const youtube_parser = (url) => {
   return match && match[7]?.length === 11 ? match[7] : false;
 };
 
-const respondWithCompression = (res, statusCode, content, type = 'text/plain') => {
-  res.writeHead(statusCode, {
-    'Content-Type': type,
-    'Content-Encoding': 'gzip',
-  });
-  zlib.gzip(content, (err, compressed) => {
-    if (err) {
-      res.writeHead(500, { 'Content-Type': 'text/plain' });
-      res.end('Compression error');
-    } else {
-      res.end(compressed);
-    }
-  });
-};
-
-const serveDashboard = (res) => {
-  const html = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>YouTube MP3 Downloader</title>
-      <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 0; background-color: #f9f9f9; color: #333; }
-        h1 { margin-top: 20px; font-size: 24px; color: #007BFF; }
-        input, button { padding: 10px; font-size: 16px; margin: 5px; width: 90%; max-width: 400px; box-sizing: border-box; }
-        button { background-color: #007BFF; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        button:hover { background-color: #0056b3; }
-        footer { margin-top: 30px; font-size: 14px; color: gray; }
-        footer a { color: #007BFF; text-decoration: none; }
-        footer a:hover { text-decoration: underline; }
-      </style>
-    </head>
-    <body>
-      <h1>YouTube MP3 Downloader</h1>
-      <p>Enter a YouTube URL to download the MP3</p>
-      <input type="text" id="youtubeUrl" placeholder="Enter YouTube URL">
-      <button onclick="downloadMp3()">Search</button>
-      <p id="result"></p>
-      <footer>Dev by <a href="https://github.com/mistakes333" target="_blank">mistakes333</a></footer>
-      <script>
-        async function downloadMp3() {
-          const url = document.getElementById('youtubeUrl').value;
-          if (!url) {
-            document.getElementById('result').innerText = 'Please enter a URL.';
-            return;
-          }
-          document.getElementById('result').innerText = 'Processing...';
-          try {
-            const response = await fetch(\`/dl?url=\${encodeURIComponent(url)}\`);
-            const data = await response.json();
-            if (data.link) {
-              document.getElementById('result').innerHTML = \`<a href="\${data.link}" target="_blank">Download</a>\`;
-            } else {
-              document.getElementById('result').innerText = 'Failed to get the MP3 link.';
-            }
-          } catch (error) {
-            document.getElementById('result').innerText = 'Error: ' + error.message;
-          }
-        }
-      </script>
-    </body>
-    </html>
-  `;
-  respondWithCompression(res, 200, html, 'text/html');
-};
-
-const serveWhitelistPage = async (res) => {
-  try {
-    const data = await readFile('allow.json', 'utf-8');
-    const { allowedDomains } = JSON.parse(data);
-
-    const html = `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Whitelist Domains</title>
-        <style>
-          body { font-family: Arial, sans-serif; background-color: #f9f9f9; margin: 0; padding: 20px; color: #333; }
-          h1 { font-size: 24px; text-align: center; color: #007BFF; }
-          ul { max-width: 500px; margin: 20px auto; padding: 0; list-style: none; }
-          li { background: #007BFF; color: white; margin: 5px 0; padding: 10px; border-radius: 5px; }
-        </style>
-      </head>
-      <body>
-        <h1>Whitelist Domains</h1>
-        <ul>
-          ${allowedDomains.map((domain) => `<li>${domain}</li>`).join('')}
-        </ul>
-      </body>
-      </html>
-    `;
-    respondWithCompression(res, 200, html, 'text/html');
-  } catch (error) {
-    console.error('Error loading allow.json:', error.message);
-    res.writeHead(500, { 'Content-Type': 'text/plain' });
-    res.end('Failed to load whitelist page');
-  }
-};
-
 const handleDownload = async (res, url) => {
   const videoId = youtube_parser(url);
   if (!videoId) {
@@ -135,12 +31,13 @@ const handleDownload = async (res, url) => {
     return;
   }
 
+  const apiKey = getNextApiKey();
   const options = {
     method: 'GET',
     url: 'https://youtube-mp36.p.rapidapi.com/dl',
     params: { id: videoId },
     headers: {
-      'x-rapidapi-key': getNextApiKey(),
+      'x-rapidapi-key': apiKey,
       'x-rapidapi-host': 'youtube-mp36.p.rapidapi.com',
     },
   };
@@ -150,19 +47,66 @@ const handleDownload = async (res, url) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(response.data));
   } catch (error) {
+    console.error(error.message);
+    if (retries < 3) {
+      retries++;
+      console.log(`Retrying... attempt ${retries}`);
+      handleDownload(res, url); // Retry the download
+      return;
+    }
     res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Failed to fetch MP3 link' }));
+    res.end(JSON.stringify({ error: 'Failed to fetch MP3 after 3 retries' }));
   }
 };
+
+const addCorsHeaders = (res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+};
+
+const apiDocs = `
+# YouTube MP3 Downloader API
+
+## Endpoints
+
+### \`GET /dl\`
+**Description**: Downloads YouTube video as MP3.
+
+#### Query Parameters:
+- \`url\` (required): The YouTube video URL.
+
+#### Example Request:
+\`\`\`
+GET /dl?url=https://www.youtube.com/watch?v=UxxajLWwzqY
+\`\`\`
+
+#### Example Response:
+\`\`\`json
+{
+  "status": "ok",
+  "title": "Song Title",
+  "link": "https://download-link.com/file.mp3"
+}
+\`\`\`
+`;
 
 const server = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
   const path = parsedUrl.pathname;
   const query = Object.fromEntries(parsedUrl.searchParams.entries());
 
-  if (path === '/') {
-    serveDashboard(res);
-  } else if (path === '/dl') {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    addCorsHeaders(res);
+    res.writeHead(204); // No Content
+    res.end();
+    return;
+  }
+
+  addCorsHeaders(res);
+
+  if (path === '/dl') {
     const { url } = query;
     if (!url) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -170,8 +114,39 @@ const server = http.createServer((req, res) => {
       return;
     }
     handleDownload(res, url);
-  } else if (path === '/whitelist') {
-    serveWhitelistPage(res);
+  } else if (path === '/api-docs') {
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>API Documentation</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/15.0.3/marked.min.js"></script>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+          }
+          pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>API Documentation</h1>
+        <div id="content"></div>
+        <script>
+          const markdown = \`${apiDocs}\`;
+          document.getElementById('content').innerHTML = marked.parse(markdown);
+        </script>
+      </body>
+      </html>
+    `);
   } else {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not Found');
