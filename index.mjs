@@ -1,5 +1,7 @@
 import http from 'node:http';
 import { URL } from 'node:url';
+import fs from 'node:fs';
+import path from 'node:path';
 import axios from 'axios';
 
 const port = 3000;
@@ -65,35 +67,9 @@ const addCorsHeaders = (res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 };
 
-const apiDocs = `
-# YouTube MP3 Downloader API
-
-## Endpoints
-
-### \`GET /dl\`
-**Description**: Downloads YouTube video as MP3.
-
-#### Query Parameters:
-- \`url\` (required): The YouTube video URL.
-
-#### Example Request:
-\`\`\`
-GET /dl?url=https://www.youtube.com/watch?v=UxxajLWwzqY
-\`\`\`
-
-#### Example Response:
-\`\`\`json
-{
-  "status": "ok",
-  "title": "Song Title",
-  "link": "https://download-link.com/file.mp3"
-}
-\`\`\`
-`;
-
 const server = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
-  const path = parsedUrl.pathname;
+  const pathName = parsedUrl.pathname;
   const query = Object.fromEntries(parsedUrl.searchParams.entries());
 
   // Handle CORS preflight requests
@@ -106,7 +82,7 @@ const server = http.createServer((req, res) => {
 
   addCorsHeaders(res);
 
-  if (path === '/dl') {
+  if (pathName === '/dl') {
     const { url } = query;
     if (!url) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -114,39 +90,54 @@ const server = http.createServer((req, res) => {
       return;
     }
     handleDownload(res, url);
-  } else if (path === '/api-docs') {
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(`
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>API Documentation</title>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/15.0.3/marked.min.js"></script>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            padding: 0;
-          }
-          pre {
-            background-color: #f4f4f4;
-            padding: 10px;
-            border-radius: 5px;
-          }
-        </style>
-      </head>
-      <body>
-        <h1>API Documentation</h1>
-        <div id="content"></div>
-        <script>
-          const markdown = \`${apiDocs}\`;
-          document.getElementById('content').innerHTML = marked.parse(markdown);
-        </script>
-      </body>
-      </html>
-    `);
+  } else if (pathName === '/') {
+    const markdownPath = path.join(process.cwd(), 'README.md');
+    fs.readFile(markdownPath, 'utf8', (err, data) => {
+      if (err) {
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end('Error reading API documentation.');
+        return;
+      }
+
+      // Serve HTML with Markdown rendering via CDN
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>API Documentation</title>
+          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css/github-markdown.min.css">
+          <style>
+            body {
+              display: flex;
+              justify-content: center;
+              padding: 20px;
+              background-color: #f4f4f4;
+            }
+            .markdown-body {
+              max-width: 800px;
+              padding: 20px;
+              background: #fff;
+              border: 1px solid #ddd;
+              border-radius: 10px;
+              box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            }
+          </style>
+        </head>
+        <body>
+          <article class="markdown-body">
+            ${data}
+          </article>
+          <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+          <script>
+            document.querySelector('.markdown-body').innerHTML = marked.parse(document.querySelector('.markdown-body').innerText);
+          </script>
+        </body>
+        </html>
+      `);
+    });
   } else {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not Found');
