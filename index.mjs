@@ -2,15 +2,13 @@ import express from 'express';
 import axios from 'axios';
 import compression from 'compression';
 import bodyParser from 'body-parser';
-import cors from 'cors'; // นำเข้า CORS
 
 // Initialize the express app
 const app = express();
 
-// Use CORS, compression, and body-parser middleware
-app.use(cors()); // เปิดใช้งาน CORS
-app.use(compression()); // ใช้ compression middleware
-app.use(bodyParser.json()); // ใช้ body-parser สำหรับ JSON
+// Use compression and body-parser middleware
+app.use(compression());
+app.use(bodyParser.json());
 
 // Port
 const port = 3000;
