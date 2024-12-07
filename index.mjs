@@ -1,16 +1,7 @@
-import express from 'express';
+import http from 'node:http';
+import { URL } from 'node:url';
 import axios from 'axios';
-import compression from 'compression';
-import bodyParser from 'body-parser';
 
-// Initialize the express app
-const app = express();
-
-// Use compression and body-parser middleware
-app.use(compression());
-app.use(bodyParser.json());
-
-// Port
 const port = 3000;
 
 // API keys and rotation logic
@@ -32,17 +23,12 @@ const youtube_parser = (url) => {
   return match && match[7]?.length === 11 ? match[7] : false;
 };
 
-// Endpoint to download MP3 from YouTube
-app.get('/download', async (req, res) => {
-  const { url } = req.query;
-
-  if (!url) {
-    return res.status(400).json({ error: 'Missing YouTube URL' });
-  }
-
+const handleDownload = async (res, url) => {
   const videoId = youtube_parser(url);
   if (!videoId) {
-    return res.status(400).json({ error: 'Invalid YouTube URL' });
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Invalid YouTube URL' }));
+    return;
   }
 
   const apiKey = getNextApiKey();
@@ -58,39 +44,40 @@ app.get('/download', async (req, res) => {
 
   try {
     const response = await axios.request(options);
-    return res.status(200).json(response.data);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(response.data));
   } catch (error) {
     console.error(error.message);
     if (retries < 3) {
       retries++;
       console.log(`Retrying... attempt ${retries}`);
-      return app.get('/download', async (req, res) => {
-        const { url } = req.query;
-        // Retry the download
-        const videoId = youtube_parser(url);
-        const apiKey = getNextApiKey();
-        const options = {
-          method: 'GET',
-          url: 'https://youtube-mp36.p.rapidapi.com/dl',
-          params: { id: videoId },
-          headers: {
-            'x-rapidapi-key': apiKey,
-            'x-rapidapi-host': 'youtube-mp36.p.rapidapi.com',
-          },
-        };
-        try {
-          const response = await axios.request(options);
-          return res.status(200).json(response.data);
-        } catch (err) {
-          return res.status(500).json({ error: 'Failed to fetch MP3 after 3 retries' });
-        }
-      });
+      handleDownload(res, url); // Retry the download
+      return;
     }
-    return res.status(500).json({ error: 'Failed to fetch MP3 after 3 retries' });
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Failed to fetch MP3 after 3 retries' }));
+  }
+};
+
+const server = http.createServer((req, res) => {
+  const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
+  const path = parsedUrl.pathname;
+  const query = Object.fromEntries(parsedUrl.searchParams.entries());
+
+  if (path === '/download') {
+    const { url } = query;
+    if (!url) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Missing YouTube URL' }));
+      return;
+    }
+    handleDownload(res, url);
+  } else {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
   }
 });
 
-// Start the server
-app.listen(port, () => {
-  console.log('Express server initialized');
+server.listen(port, () => {
+  console.log(`Server is running at http://localhost:${port}`);
 });
