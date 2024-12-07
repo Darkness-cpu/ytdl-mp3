@@ -49,9 +49,9 @@ const handleDownload = async (url: string) => {
   }
 };
 
-const app = new Elysia()
+new Elysia()
   .get(
-    '/download',
+    '/dl',
     async ({ query }) => {
       const { url } = query;
       if (!url) {
@@ -73,5 +73,3 @@ const app = new Elysia()
     }
   )
   .listen(3000);
-
-console.log(`⚡ Elysia server is running at http://localhost:3000`);
