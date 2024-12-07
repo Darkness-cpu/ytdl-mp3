@@ -20,7 +20,7 @@ const youtube_parser = (url: string): string | false => {
 };
 
 new Elysia()
-  .get('/download', async ({ query }) => {
+  .get('/dl', async ({ query }) => {
     const url = query.url as string;
     if (!url) {
       return { error: 'Missing YouTube URL' };
