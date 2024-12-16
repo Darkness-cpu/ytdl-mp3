@@ -132,7 +132,7 @@ const server = http.createServer((req, res) => {
   const path = parsedUrl.pathname;
   const query = Object.fromEntries(parsedUrl.searchParams.entries());
 
-  if (path === '/dashboard') {
+  if (path === '/') {
     serveDashboard(res);
   } else if (path === '/dl') {
     const { url } = query;
