@@ -1,9 +1,15 @@
-import http from 'node:http';
-import { URL } from 'node:url';
+import express from 'express';
+import compression from 'compression';
 import axios from 'axios';
-import zlib from 'node:zlib';
 
+const app = express();
 const port = 3000;
+
+// Enable JSON parsing
+app.use(express.json());
+
+// Enable compression for all responses
+app.use(compression());
 
 // API keys and rotation logic
 const apiKeys = [
@@ -13,7 +19,6 @@ const apiKeys = [
   'ea7a66dfaemshecacaabadeedebbp17b247jsn7966d78a3945',
 ];
 let currentKeyIndex = 0;
-let retries = 0; // Retry counter
 
 const getNextApiKey = () => apiKeys[(currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length)];
 
@@ -24,22 +29,8 @@ const youtube_parser = (url) => {
   return match && match[7]?.length === 11 ? match[7] : false;
 };
 
-const respondWithCompression = (res, statusCode, content, type = 'text/plain') => {
-  res.writeHead(statusCode, {
-    'Content-Type': type,
-    'Content-Encoding': 'gzip',
-  });
-  zlib.gzip(content, (err, compressed) => {
-    if (err) {
-      res.writeHead(500, { 'Content-Type': 'text/plain' });
-      res.end('Compression error');
-    } else {
-      res.end(compressed);
-    }
-  });
-};
-
-const serveDashboard = (res) => {
+// Serve the dashboard
+app.get('/dashboard', (req, res) => {
   const html = `
     <!DOCTYPE html>
     <html lang="en">
@@ -88,14 +79,21 @@ const serveDashboard = (res) => {
     </body>
     </html>
   `;
-  respondWithCompression(res, 200, html, 'text/html');
-};
+  res.send(html);
+});
 
-const handleDownload = async (res, url) => {
+// Handle the download path
+app.get('/dl', async (req, res) => {
+  const { url } = req.query;
+
+  if (!url) {
+    res.status(400).json({ error: 'Missing YouTube URL' });
+    return;
+  }
+
   const videoId = youtube_parser(url);
   if (!videoId) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Invalid YouTube URL' }));
+    res.status(400).json({ error: 'Invalid YouTube URL' });
     return;
   }
 
@@ -112,42 +110,19 @@ const handleDownload = async (res, url) => {
 
   try {
     const response = await axios.request(options);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(response.data));
+    res.json(response.data);
   } catch (error) {
     console.error(error.message);
-    if (retries < 3) {
-      retries++;
-      console.log(`Retrying... attempt ${retries}`);
-      handleDownload(res, url);  // Retry the download
-      return;
-    }
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Failed to fetch MP3 after 3 retries' }));
-  }
-};
-
-const server = http.createServer((req, res) => {
-  const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
-  const path = parsedUrl.pathname;
-  const query = Object.fromEntries(parsedUrl.searchParams.entries());
-
-  if (path === '/') {
-    serveDashboard(res);
-  } else if (path === '/dl') {
-    const { url } = query;
-    if (!url) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Missing YouTube URL' }));
-      return;
-    }
-    handleDownload(res, url);
-  } else {
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('Not Found');
+    res.status(500).json({ error: 'Failed to fetch MP3' });
   }
 });
 
-server.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`);
+// Handle undefined routes
+app.use((req, res) => {
+  res.status(404).send('Not Found');
+});
+
+// Start the server
+app.listen(port, () => {
+  console.log(`Server is running on port:${port}`);
 });
