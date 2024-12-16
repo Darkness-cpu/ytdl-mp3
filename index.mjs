@@ -30,7 +30,7 @@ const youtube_parser = (url) => {
 };
 
 // Serve the dashboard
-app.get('/dashboard', (req, res) => {
+app.get('/', (req, res) => {
   const html = `
     <!DOCTYPE html>
     <html lang="en">
