@@ -16,6 +16,7 @@
     "nodejs"
   ],
   "dependencies": {
+    "@elysiajs/html": "latest",
     "axios": "latest",
     "elysia": "latest"
   },
