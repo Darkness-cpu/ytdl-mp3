@@ -14,10 +14,14 @@
     "mp3",
     "downloader",
     "javascript",
+    "express",
+    "compression",
     "nodejs"
   ],
   "dependencies": {
-    "axios": "latest"
+    "axios": "latest",
+    "compression": "latest",
+    "express": "latest"
   },
   "devDependencies": {
     "nodemon": "latest"
