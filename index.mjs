@@ -31,13 +31,60 @@ const youtube_parser = (url) => {
 
 // Serve the dashboard
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/public/index.html');
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>YouTube MP3 Downloader</title>
+      <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 0; background-color: #f9f9f9; color: #333; }
+        h1 { margin-top: 20px; font-size: 24px; color: #007BFF; }
+        input, button { padding: 10px; font-size: 16px; margin: 5px; width: 90%; max-width: 400px; box-sizing: border-box; }
+        button { background-color: #007BFF; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        footer { margin-top: 30px; font-size: 14px; color: gray; }
+        footer a { color: #007BFF; text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+      </style>
+    </head>
+    <body>
+      <h1>YouTube MP3 Downloader</h1>
+      <p>Enter a YouTube URL to download the MP3</p>
+      <input type="text" id="youtubeUrl" placeholder="Enter YouTube URL">
+      <button onclick="downloadMp3()">Search</button>
+      <p id="result"></p>
+      <footer>Dev by <a href="https://github.com/mistakes333" target="_blank">mistakes333</a></footer>
+      <script>
+        async function downloadMp3() {
+          const url = document.getElementById('youtubeUrl').value;
+          if (!url) {
+            document.getElementById('result').innerText = 'Please enter a URL.';
+            return;
+          }
+          document.getElementById('result').innerText = 'Processing...';
+          try {
+            const response = await fetch(\`/dl?url=\${encodeURIComponent(url)}\`);
+            const data = await response.json();
+            if (data.link) {
+              document.getElementById('result').innerHTML = \`<a href="\${data.link}" target="_blank">Download</a>\`;
+            } else {
+              document.getElementById('result').innerText = 'Failed to get the MP3 link.';
+            }
+          } catch (error) {
+            document.getElementById('result').innerText = 'Error: ' + error.message;
+          }
+        }
+      </script>
+    </body>
+    </html>
+  `;
+  res.send(html);
 });
 
-// Handle the download path
+// Enhanced stability for the download route
 app.get('/dl', async (req, res) => {
-// Handle the download path with added stability
-app.get('/download', async (req, res) => {
   const { url } = req.query;
 
   if (!url) {
@@ -97,5 +144,5 @@ app.use((req, res) => {
 
 // Start the server
 app.listen(port, () => {
-  console.log(`Server is running on port:${port}`);
+  console.log(`Server is running at http://localhost:${port}`);
 });
