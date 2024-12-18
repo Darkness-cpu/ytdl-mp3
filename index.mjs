@@ -36,6 +36,8 @@ app.get('/', (req, res) => {
 
 // Handle the download path
 app.get('/dl', async (req, res) => {
+// Handle the download path with added stability
+app.get('/download', async (req, res) => {
   const { url } = req.query;
 
   if (!url) {
@@ -49,25 +51,44 @@ app.get('/dl', async (req, res) => {
     return;
   }
 
-  const apiKey = getNextApiKey();
-  const options = {
-    method: 'GET',
-    url: 'https://youtube-mp36.p.rapidapi.com/dl',
-    params: { id: videoId },
-    headers: {
-      'x-rapidapi-key': apiKey,
-      'x-rapidapi-host': 'youtube-mp36.p.rapidapi.com',
-    },
-  };
+  let retries = 3; // Number of retry attempts
+  let success = false;
+  let response = null;
 
-  try {
-    const response = await axios.request(options);
+  while (retries > 0 && !success) {
+    const apiKey = getNextApiKey();
+    const options = {
+      method: 'GET',
+      url: 'https://youtube-mp36.p.rapidapi.com/dl',
+      params: { id: videoId },
+      headers: {
+        'x-rapidapi-key': apiKey,
+        'x-rapidapi-host': 'youtube-mp36.p.rapidapi.com',
+      },
+      timeout: 5000, // 5 seconds timeout
+    };
+
+    try {
+      response = await axios.request(options);
+      if (response.data && response.data.link) {
+        success = true;
+        break; // Exit loop if the request is successful
+      } else {
+        throw new Error('No MP3 link found in response.');
+      }
+    } catch (error) {
+      console.error(`Attempt failed with API key: ${apiKey} - ${error.message}`);
+      retries--;
+    }
+  }
+
+  if (success) {
     res.json(response.data);
-  } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ error: 'Failed to fetch MP3' });
+  } else {
+    res.status(500).json({ error: 'Failed to fetch MP3 after multiple attempts.' });
   }
 });
+
 
 // Handle undefined routes
 app.use((req, res) => {
