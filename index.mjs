@@ -1,7 +1,6 @@
 import express from 'express';
 import compression from 'compression';
 import axios from 'axios';
-import fs from 'fs';
 import path from 'path';
 
 const app = express();
@@ -167,12 +166,6 @@ app.get('/dl', async (req, res) => {
   }
 });
 
-
-
-// Handle undefined routes
-app.use((req, res) => {
-  res.status(404).send('Not Found');
-});
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
