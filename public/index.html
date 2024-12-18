@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YouTube MP3 Downloader</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>YouTube MP3 Downloader</h1>
+    </header>
+    <main>
+      <form id="download-form">
+        <label for="url">Enter YouTube URL:</label>
+        <input type="text" id="url" name="url" placeholder="https://www.youtube.com/watch?v=example" required />
+        <button type="submit">Search</button>
+      </form>
+      <div id="result" class="hidden">
+        <h2>Download Link</h2>
+        <a id="download-link" href="#" target="_blank">Click here to download</a>
+      </div>
+      <p id="error-message" class="error hidden"></p>
+    </main>
+    <footer>
+    </footer>
+  </div>
+  <script>
+    const form = document.getElementById('download-form');
+    const result = document.getElementById('result');
+    const errorMessage = document.getElementById('error-message');
+    const downloadLink = document.getElementById('download-link');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const url = document.getElementById('url').value;
+
+      errorMessage.classList.add('hidden');
+      result.classList.add('hidden');
+
+      try {
+        const response = await fetch(`/download?url=${encodeURIComponent(url)}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch MP3 link');
+        }
+
+        const data = await response.json();
+        if (data.link) {
+          downloadLink.href = data.link;
+          downloadLink.textContent = 'Download MP3';
+          result.classList.remove('hidden');
+        } else {
+          throw new Error(data.error || 'Unexpected error');
+        }
+      } catch (error) {
+        errorMessage.textContent = error.message;
+        errorMessage.classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>
