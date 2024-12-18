@@ -14,7 +14,7 @@ app.use(express.json());
 app.use(compression());
 
 // Path to cache file
-const cacheFilePath = path.resolve(__dirname, 'cache.json');
+const cacheFilePath = path.resolve(__dirname, 'caches.json');
 
 // Load cache from file or initialize it
 let cache = {};
