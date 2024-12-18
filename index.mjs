@@ -1,6 +1,8 @@
 import express from 'express';
 import compression from 'compression';
 import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
 
 const app = express();
 const port = 3000;
@@ -27,6 +29,24 @@ const youtube_parser = (url) => {
   const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
   const match = url.match(regExp);
   return match && match[7]?.length === 11 ? match[7] : false;
+};
+
+// Path to the cache file
+const cacheFilePath = path.join(__dirname, 'data.json');
+
+// Read cache from the file
+const readCache = () => {
+  try {
+    const data = fs.readFileSync(cacheFilePath, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    return {}; // Return empty object if cache file does not exist or cannot be read
+  }
+};
+
+// Write cache to the file
+const writeCache = (cache) => {
+  fs.writeFileSync(cacheFilePath, JSON.stringify(cache, null, 2), 'utf8');
 };
 
 // Serve the dashboard
@@ -83,7 +103,7 @@ app.get('/dashboard', (req, res) => {
   res.send(html);
 });
 
-// Enhanced stability for the download route
+// Enhanced stability for the download route with cache support
 app.get('/download', async (req, res) => {
   const { url } = req.query;
 
@@ -96,6 +116,14 @@ app.get('/download', async (req, res) => {
   if (!videoId) {
     res.status(400).json({ error: 'Invalid YouTube URL' });
     return;
+  }
+
+  // Check cache first
+  const cache = readCache();
+  if (cache[videoId]) {
+    // Return cached result
+    console.log('Returning cached data for video ID:', videoId);
+    return res.json(cache[videoId]);
   }
 
   let retries = 3; // Number of retry attempts
@@ -119,6 +147,9 @@ app.get('/download', async (req, res) => {
       response = await axios.request(options);
       if (response.data && response.data.link) {
         success = true;
+        // Cache the result
+        cache[videoId] = response.data;
+        writeCache(cache);
         break; // Exit loop if the request is successful
       } else {
         throw new Error('No MP3 link found in response.');
@@ -136,6 +167,8 @@ app.get('/download', async (req, res) => {
   }
 });
 
+
+
 // Handle undefined routes
 app.use((req, res) => {
   res.status(404).send('Not Found');
@@ -148,7 +181,6 @@ app.use((err, req, res, next) => {
     <p>${err.message}</p>
   `);
 });
-
 
 
 // Start the server
