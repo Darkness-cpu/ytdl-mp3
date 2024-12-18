@@ -1,7 +1,8 @@
-import express from 'express';
-import compression from 'compression';
-import axios from 'axios';
-import path from 'path';
+const express = require('express');
+const compression = require('compression');
+const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const port = 3000;
@@ -11,6 +12,28 @@ app.use(express.json());
 
 // Enable compression for all responses
 app.use(compression());
+
+// Path to cache file
+const cacheFilePath = path.resolve(__dirname, 'cache.json');
+
+// Load cache from file or initialize it
+let cache = {};
+if (fs.existsSync(cacheFilePath)) {
+  try {
+    cache = JSON.parse(fs.readFileSync(cacheFilePath, 'utf8'));
+  } catch (error) {
+    console.error('Failed to load cache:', error.message);
+  }
+}
+
+// Save cache to file
+const saveCache = () => {
+  try {
+    fs.writeFileSync(cacheFilePath, JSON.stringify(cache, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Failed to save cache:', error.message);
+  }
+};
 
 // API keys and rotation logic
 const apiKeys = [
@@ -28,24 +51,6 @@ const youtube_parser = (url) => {
   const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
   const match = url.match(regExp);
   return match && match[7]?.length === 11 ? match[7] : false;
-};
-
-// Path to the cache file
-const cacheFilePath = path.join(__dirname, 'data.json');
-
-// Read cache from the file
-const readCache = () => {
-  try {
-    const data = fs.readFileSync(cacheFilePath, 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    return {}; // Return empty object if cache file does not exist or cannot be read
-  }
-};
-
-// Write cache to the file
-const writeCache = (cache) => {
-  fs.writeFileSync(cacheFilePath, JSON.stringify(cache, null, 2), 'utf8');
 };
 
 // Serve the dashboard
@@ -102,7 +107,7 @@ app.get('/', (req, res) => {
   res.send(html);
 });
 
-// Enhanced stability for the download route with cache support
+// Enhanced download route with caching
 app.get('/dl', async (req, res) => {
   const { url } = req.query;
 
@@ -117,15 +122,14 @@ app.get('/dl', async (req, res) => {
     return;
   }
 
-  // Check cache first
-  const cache = readCache();
+  // Check cache
   if (cache[videoId]) {
-    // Return cached result
-    console.log('Returning cached data for video ID:', videoId);
-    return res.json(cache[videoId]);
+    console.log('Serving from cache:', videoId);
+    res.json(cache[videoId]);
+    return;
   }
 
-  let retries = 3; // Number of retry attempts
+  let retries = 3;
   let success = false;
   let response = null;
 
@@ -146,10 +150,9 @@ app.get('/dl', async (req, res) => {
       response = await axios.request(options);
       if (response.data && response.data.link) {
         success = true;
-        // Cache the result
-        cache[videoId] = response.data;
-        writeCache(cache);
-        break; // Exit loop if the request is successful
+        cache[videoId] = response.data; // Store result in cache
+        saveCache(); // Save to file
+        break;
       } else {
         throw new Error('No MP3 link found in response.');
       }
@@ -166,15 +169,10 @@ app.get('/dl', async (req, res) => {
   }
 });
 
-
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send(`
-    <h1>Something went wrong!</h1>
-    <p>${err.message}</p>
-  `);
+// Handle undefined routes
+app.use((req, res) => {
+  res.status(404).send('Not Found');
 });
-
 
 // Start the server
 app.listen(port, () => {
