@@ -30,7 +30,7 @@ const youtube_parser = (url) => {
 };
 
 // Serve the dashboard
-app.get('/', (req, res) => {
+app.get('/dashboard', (req, res) => {
   const html = `
     <!DOCTYPE html>
     <html lang="en">
@@ -53,7 +53,7 @@ app.get('/', (req, res) => {
       <h1>YouTube MP3 Downloader</h1>
       <p>Enter a YouTube URL to download the MP3</p>
       <input type="text" id="youtubeUrl" placeholder="Enter YouTube URL">
-      <button onclick="downloadMp3()">Search</button>
+      <button onclick="downloadMp3()">Download MP3</button>
       <p id="result"></p>
       <footer>Dev by <a href="https://github.com/mistakes333" target="_blank">mistakes333</a></footer>
       <script>
@@ -65,10 +65,10 @@ app.get('/', (req, res) => {
           }
           document.getElementById('result').innerText = 'Processing...';
           try {
-            const response = await fetch(\`/dl?url=\${encodeURIComponent(url)}\`);
+            const response = await fetch(\`/download?url=\${encodeURIComponent(url)}\`);
             const data = await response.json();
             if (data.link) {
-              document.getElementById('result').innerHTML = \`<a href="\${data.link}" target="_blank">Download</a>\`;
+              document.getElementById('result').innerHTML = \`<a href="\${data.link}" target="_blank">Download MP3</a>\`;
             } else {
               document.getElementById('result').innerText = 'Failed to get the MP3 link.';
             }
@@ -84,7 +84,7 @@ app.get('/', (req, res) => {
 });
 
 // Enhanced stability for the download route
-app.get('/dl', async (req, res) => {
+app.get('/download', async (req, res) => {
   const { url } = req.query;
 
   if (!url) {
@@ -136,11 +136,20 @@ app.get('/dl', async (req, res) => {
   }
 });
 
-
 // Handle undefined routes
 app.use((req, res) => {
   res.status(404).send('Not Found');
 });
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send(`
+    <h1>Something went wrong!</h1>
+    <p>${err.message}</p>
+  `);
+});
+
+
 
 // Start the server
 app.listen(port, () => {
