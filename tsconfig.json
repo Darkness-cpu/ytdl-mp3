@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "es2020",                  // Use modern JavaScript features
+    "module": "esnext",               // Module system for Node.js
+    "moduleResolution": "node",
+    "strict": true,                     // Enable strict type checking
+    "esModuleInterop": true,            // Allow default imports from CommonJS modules
+    "skipLibCheck": true,               // Skip type checking of declaration files
+    "forceConsistentCasingInFileNames": true, // Enforce consistent file name casing
+    "outDir": "./dist",                 // Output directory for compiled files
+    "rootDir": "./src",                 // Root directory of source files
+    "resolveJsonModule": true,          // Enable importing of .json files
+    "types": ["node"]                   // Include Node.js types
+  },
+  "include": ["src"],                   // Include all files in the `src` directory
+  "exclude": ["node_modules"]           // Exclude `node_modules` from compilation
+}
