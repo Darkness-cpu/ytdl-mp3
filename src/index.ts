@@ -1,8 +1,6 @@
 import express, { Request, Response } from 'express';
 import compression from 'compression';
 import axios, { AxiosRequestConfig } from 'axios';
-import fs from 'fs';
-import path from 'path';
 
 const app = express();
 const port = 3000;
@@ -13,27 +11,8 @@ app.use(express.json());
 // Enable compression for all responses
 app.use(compression());
 
-// Path to cache file
-const cacheFilePath = path.resolve(__dirname, 'caches.json');
-
-// Load cache from file or initialize it
-let cache: Record<string, any> = {};
-if (fs.existsSync(cacheFilePath)) {
-  try {
-    cache = JSON.parse(fs.readFileSync(cacheFilePath, 'utf8'));
-  } catch (error) {
-    console.error('Failed to load cache:', (error as Error).message);
-  }
-}
-
-// Save cache to file
-const saveCache = (): void => {
-  try {
-    fs.writeFileSync(cacheFilePath, JSON.stringify(cache, null, 2), 'utf8');
-  } catch (error) {
-    console.error('Failed to save cache:', (error as Error).message);
-  }
-};
+// In-memory cache using Map
+const cache = new Map<string, any>();
 
 // API keys and rotation logic
 const apiKeys: string[] = [
@@ -89,7 +68,7 @@ app.get('/', (_req: Request, res: Response) => {
           }
           document.getElementById('result').innerText = 'Processing...';
           try {
-            const response = await fetch(\`/dl?url=\${encodeURIComponent(url)}\`);
+            const response = await fetch(\`/download?url=\${encodeURIComponent(url)}\`);
             const data = await response.json();
             if (data.link) {
               document.getElementById('result').innerHTML = \`<a href="\${data.link}" target="_blank">Download</a>\`;
@@ -107,8 +86,8 @@ app.get('/', (_req: Request, res: Response) => {
   res.send(html);
 });
 
-// Enhanced download route with caching
-app.get('/dl', async (req: Request, res: Response) => {
+// Enhanced download route with in-memory caching
+app.get('/download', async (req: Request, res: Response) => {
   const { url } = req.query;
 
   if (!url || typeof url !== 'string') {
@@ -123,13 +102,13 @@ app.get('/dl', async (req: Request, res: Response) => {
   }
 
   // Check cache
-  if (cache[videoId]) {
+  if (cache.has(videoId)) {
     console.log('Serving from cache:', videoId);
-    res.json(cache[videoId]);
+    res.json(cache.get(videoId));
     return;
   }
 
-  let retries = 8;
+  let retries = 3;
   let success = false;
   let response = null;
 
@@ -150,8 +129,7 @@ app.get('/dl', async (req: Request, res: Response) => {
       response = await axios.request(options);
       if (response.data && response.data.link) {
         success = true;
-        cache[videoId] = response.data.link; // Store result in cache
-        saveCache(); // Save to file
+        cache.set(videoId, response.data); // Store result in cache
         break;
       } else {
         throw new Error('No MP3 link found in response.');
