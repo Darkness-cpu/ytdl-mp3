@@ -24,9 +24,6 @@
     "express": "latest"
   },
   "devDependencies": {
-    "@types/compression": "latest",
-    "@types/express": "latest",
-    "@types/node": "latest",
     "nodemon": "latest",
     "typescript": "latest"
   }
