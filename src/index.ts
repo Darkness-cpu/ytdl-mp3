@@ -1,39 +1,44 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
 import compression from 'compression';
-import axios, { AxiosRequestConfig } from 'axios';
+import axios from 'axios';
 
+// Initialize the app
 const app = express();
 const port = 3000;
 
-// Enable JSON parsing
+// Middleware
+app.use(compression());
 app.use(express.json());
 
-// Enable compression for all responses
-app.use(compression());
-
-// In-memory cache using Map
-const cache = new Map<string, any>();
-
-// API keys and rotation logic
-const apiKeys: string[] = [
+// API Key Rotation
+const apiKeys = [
   'db751b0a05msh95365b14dcde368p12dbd9jsn440b1b8ae7cb',
   '0649dc83c2msh88ac949854b30c2p1f2fe8jsn871589450eb3',
   '0e88d5d689msh145371e9bc7d2d8p17eebejsn8ff825d6291f',
   'ea7a66dfaemshecacaabadeedebbp17b247jsn7966d78a3945',
 ];
 let currentKeyIndex = 0;
+const getNextApiKey = () => {
+  currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length;
+  return apiKeys[currentKeyIndex];
+};
 
-const getNextApiKey = (): string => apiKeys[(currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length)];
+// Cache and Usage Tracking
+const cache = new Map();
+const apiKeyUsage = new Map(apiKeys.map((key) => [key, 0]));
 
-const youtube_parser = (url: string): string | false => {
+// YouTube ID Parser
+const youtube_parser = (url) => {
   url = url.replace(/\?si=.*/, '');
   const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
   const match = url.match(regExp);
   return match && match[7]?.length === 11 ? match[7] : false;
 };
 
-// Serve the dashboard
-app.get('/', (_req: Request, res: Response) => {
+// Routes
+
+// Dashboard
+app.get('/', (req, res) => {
   const html = `
     <!DOCTYPE html>
     <html lang="en">
@@ -86,73 +91,131 @@ app.get('/', (_req: Request, res: Response) => {
   res.send(html);
 });
 
-// Enhanced download route with in-memory caching
-app.get('/download', async (req: Request, res: Response) => {
-  const { url } = req.query;
 
+// Download Endpoint
+app.get('/download', async (req, res) => {
+  const { url } = req.query;
   if (!url || typeof url !== 'string') {
-    res.status(400).json({ error: 'Missing YouTube URL' });
-    return;
+    return res.status(400).json({ error: 'Invalid URL parameter' });
   }
 
   const videoId = youtube_parser(url);
   if (!videoId) {
-    res.status(400).json({ error: 'Invalid YouTube URL' });
-    return;
+    return res.status(400).json({ error: 'Invalid YouTube URL' });
   }
 
-  // Check cache
+  // Check Cache
   if (cache.has(videoId)) {
-    console.log('Serving from cache:', videoId);
-    res.json(cache.get(videoId));
-    return;
+    return res.json({ success: true, cached: true, link: cache.get(videoId) });
   }
 
-  let retries = 3;
-  let success = false;
-  let response = null;
+  const apiKey = getNextApiKey();
+  const options = {
+    method: 'GET',
+    url: 'https://youtube-mp36.p.rapidapi.com/dl',
+    params: { id: videoId },
+    headers: {
+      'x-rapidapi-key': apiKey,
+      'x-rapidapi-host': 'youtube-mp36.p.rapidapi.com',
+    },
+  };
 
-  while (retries > 0 && !success) {
-    const apiKey = getNextApiKey();
-    const options: AxiosRequestConfig = {
-      method: 'GET',
-      url: 'https://youtube-mp36.p.rapidapi.com/dl',
-      params: { id: videoId },
-      headers: {
-        'x-rapidapi-key': apiKey,
-        'x-rapidapi-host': 'youtube-mp36.p.rapidapi.com',
-      },
-      timeout: 5000, // 5 seconds timeout
-    };
+  try {
+    const response = await axios.request(options);
+    const { link } = response.data;
 
-    try {
-      response = await axios.request(options);
-      if (response.data && response.data.link) {
-        success = true;
-        cache.set(videoId, response.data); // Store result in cache
-        break;
-      } else {
-        throw new Error('No MP3 link found in response.');
-      }
-    } catch (error) {
-      console.error(`Attempt failed with API key: ${apiKey} - ${(error as Error).message}`);
-      retries--;
+    if (link) {
+      cache.set(videoId, link);
+      apiKeyUsage.set(apiKey, (apiKeyUsage.get(apiKey) || 0) + 1);
+      return res.json({ success: true, cached: false, link });
+    } else {
+      throw new Error('Invalid response from API');
     }
-  }
-
-  if (success && response) {
-    res.json(response.data);
-  } else {
-    res.status(500).json({ error: 'Failed to fetch MP3 after multiple attempts.' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Failed to fetch download link' });
   }
 });
 
-// Handle undefined routes
-app.use((_req, res) => {
-  res.status(404).send('Not Found');
+// Stats Page
+app.get('/stats', (_req, res) => {
+  const stats = {
+    cachedItems: cache.size,
+    apiKeyUsage: Array.from(apiKeyUsage.entries()).map(([key, count]) => ({
+      key,
+      count,
+    })),
+  };
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Server Statistics</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          background-color: #f4f4f9;
+          text-align: center;
+          margin: 0;
+          padding: 20px;
+        }
+        .stats {
+          max-width: 600px;
+          margin: auto;
+          padding: 20px;
+          background: white;
+          border-radius: 8px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .stat-item {
+          display: flex;
+          justify-content: space-between;
+          padding: 10px;
+          border-bottom: 1px solid #eee;
+        }
+        .stat-item:last-child {
+          border-bottom: none;
+        }
+        footer {
+          margin-top: 20px;
+          color: gray;
+        }
+        footer a {
+          color: #007BFF;
+          text-decoration: none;
+        }
+      </style>
+    </head>
+    <body>
+      <h1>Server Statistics</h1>
+      <div class="stats">
+        <div class="stat-item">
+          <span>Cached Items:</span>
+          <span>${stats.cachedItems}</span>
+        </div>
+        ${stats.apiKeyUsage
+          .map(
+            ({ key, count }) => `
+            <div class="stat-item">
+              <span>${key}</span>
+              <span>${count}</span>
+            </div>
+          `
+          )
+          .join('')}
+      </div>
+      <footer>Dev by <a href="https://github.com/mistakes333" target="_blank">mistakes333</a></footer>
+    </body>
+    </html>
+  `;
+
+  res.send(html);
 });
 
-// Start the server
+// Start Server
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
