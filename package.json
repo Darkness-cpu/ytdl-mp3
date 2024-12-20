@@ -28,6 +28,6 @@
     "@types/express": "latest",
     "@types/node": "latest",
     "nodemon": "latest",
-    "typescript": : "latest"
+    "typescript": "latest"
   }
 }
