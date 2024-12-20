@@ -14,7 +14,7 @@ app.use(express.json());
 app.use(compression());
 
 // Path to cache file
-const cacheFilePath = path.resolve(__dirname, 'cache.json');
+const cacheFilePath = path.resolve(__dirname, 'caches.json');
 
 // Load cache from file or initialize it
 let cache: Record<string, any> = {};
@@ -54,7 +54,7 @@ const youtube_parser = (url: string): string | false => {
 };
 
 // Serve the dashboard
-app.get('/dashboard', (_req: Request, res: Response) => {
+app.get('/', (_req: Request, res: Response) => {
   const html = `
     <!DOCTYPE html>
     <html lang="en">
@@ -150,7 +150,7 @@ app.get('/dl', async (req: Request, res: Response) => {
       response = await axios.request(options);
       if (response.data && response.data.link) {
         success = true;
-        cache[videoId] = response.data; // Store result in cache
+        cache[videoId] = response.data.link; // Store result in cache
         saveCache(); // Save to file
         break;
       } else {
