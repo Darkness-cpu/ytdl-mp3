@@ -1,8 +1,8 @@
-const express = require('express');
-const compression = require('compression');
-const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
+import express, { Request, Response } from 'express';
+import compression from 'compression';
+import axios, { AxiosRequestConfig } from 'axios';
+import fs from 'fs';
+import path from 'path';
 
 const app = express();
 const port = 3000;
@@ -14,29 +14,29 @@ app.use(express.json());
 app.use(compression());
 
 // Path to cache file
-const cacheFilePath = path.resolve(__dirname, 'caches.json');
+const cacheFilePath = path.resolve(__dirname, 'cache.json');
 
 // Load cache from file or initialize it
-let cache = {};
+let cache: Record<string, any> = {};
 if (fs.existsSync(cacheFilePath)) {
   try {
     cache = JSON.parse(fs.readFileSync(cacheFilePath, 'utf8'));
   } catch (error) {
-    console.error('Failed to load cache:', error.message);
+    console.error('Failed to load cache:', (error as Error).message);
   }
 }
 
 // Save cache to file
-const saveCache = () => {
+const saveCache = (): void => {
   try {
     fs.writeFileSync(cacheFilePath, JSON.stringify(cache, null, 2), 'utf8');
   } catch (error) {
-    console.error('Failed to save cache:', error.message);
+    console.error('Failed to save cache:', (error as Error).message);
   }
 };
 
 // API keys and rotation logic
-const apiKeys = [
+const apiKeys: string[] = [
   'db751b0a05msh95365b14dcde368p12dbd9jsn440b1b8ae7cb',
   '0649dc83c2msh88ac949854b30c2p1f2fe8jsn871589450eb3',
   '0e88d5d689msh145371e9bc7d2d8p17eebejsn8ff825d6291f',
@@ -44,9 +44,9 @@ const apiKeys = [
 ];
 let currentKeyIndex = 0;
 
-const getNextApiKey = () => apiKeys[(currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length)];
+const getNextApiKey = (): string => apiKeys[(currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length)];
 
-const youtube_parser = (url) => {
+const youtube_parser = (url: string): string | false => {
   url = url.replace(/\?si=.*/, '');
   const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
   const match = url.match(regExp);
@@ -54,7 +54,7 @@ const youtube_parser = (url) => {
 };
 
 // Serve the dashboard
-app.get('/', (req, res) => {
+app.get('/dashboard', (_req: Request, res: Response) => {
   const html = `
     <!DOCTYPE html>
     <html lang="en">
@@ -108,10 +108,10 @@ app.get('/', (req, res) => {
 });
 
 // Enhanced download route with caching
-app.get('/dl', async (req, res) => {
+app.get('/dl', async (req: Request, res: Response) => {
   const { url } = req.query;
 
-  if (!url) {
+  if (!url || typeof url !== 'string') {
     res.status(400).json({ error: 'Missing YouTube URL' });
     return;
   }
@@ -129,13 +129,13 @@ app.get('/dl', async (req, res) => {
     return;
   }
 
-  let retries = 3;
+  let retries = 8;
   let success = false;
   let response = null;
 
   while (retries > 0 && !success) {
     const apiKey = getNextApiKey();
-    const options = {
+    const options: AxiosRequestConfig = {
       method: 'GET',
       url: 'https://youtube-mp36.p.rapidapi.com/dl',
       params: { id: videoId },
@@ -157,12 +157,12 @@ app.get('/dl', async (req, res) => {
         throw new Error('No MP3 link found in response.');
       }
     } catch (error) {
-      console.error(`Attempt failed with API key: ${apiKey} - ${error.message}`);
+      console.error(`Attempt failed with API key: ${apiKey} - ${(error as Error).message}`);
       retries--;
     }
   }
 
-  if (success) {
+  if (success && response) {
     res.json(response.data);
   } else {
     res.status(500).json({ error: 'Failed to fetch MP3 after multiple attempts.' });
@@ -170,7 +170,7 @@ app.get('/dl', async (req, res) => {
 });
 
 // Handle undefined routes
-app.use((req, res) => {
+app.use((_req, res) => {
   res.status(404).send('Not Found');
 });
 
