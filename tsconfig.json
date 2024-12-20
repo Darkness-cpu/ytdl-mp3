@@ -3,6 +3,7 @@
     "target": "es2020",
     "module": "commonjs",
     "moduleResolution": "node",
+    "noImplicitAny": true
     "allowJs": true,
     "checkJs": true,
     "maxNodeModuleJsDepth": 3,
