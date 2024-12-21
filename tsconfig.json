@@ -9,7 +9,7 @@
     "maxNodeModuleJsDepth": 1,
     "strict": true,                             // Enable all strict type-checking options
     "esModuleInterop": true,                    // Allow `import` statements with CommonJS modules
-    "skipLibCheck": true,                       // Skip type checks on declaration files
+    "skipLibCheck": false,                       // Skip type checks on declaration files
     "forceConsistentCasingInFileNames": true,   // Enforce case-sensitive imports
     "resolveJsonModule": true,                  // Allow importing JSON files
     "moduleResolution": "node",                // Use Node.js module resolution
