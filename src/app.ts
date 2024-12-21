@@ -11,8 +11,8 @@ app.use(express.json());
 // Enable compression for all responses
 app.use(compression());
 
-// In-memory cache using Map
-const cache = new Map<string, any>();
+// In-memory cache with Map for global caching
+const globalCache = new Map<string, any>();
 
 // API keys and rotation logic
 const apiKeys: string[] = [
@@ -33,7 +33,7 @@ const youtube_parser = (url: string): string | false => {
 };
 
 // Serve the dashboard
-app.get('/', (_req: Request, res: Response) => {
+app.get('/dashboard', (_req: Request, res: Response) => {
   const html = `
     <!DOCTYPE html>
     <html lang="en">
@@ -56,7 +56,7 @@ app.get('/', (_req: Request, res: Response) => {
       <h1>YouTube MP3 Downloader</h1>
       <p>Enter a YouTube URL to download the MP3</p>
       <input type="text" id="youtubeUrl" placeholder="Enter YouTube URL">
-      <button onclick="downloadMp3()">Search</button>
+      <button onclick="downloadMp3()">Download MP3</button>
       <p id="result"></p>
       <footer>Dev by <a href="https://github.com/mistakes333" target="_blank">mistakes333</a></footer>
       <script>
@@ -86,7 +86,7 @@ app.get('/', (_req: Request, res: Response) => {
   res.send(html);
 });
 
-// Enhanced download route with in-memory caching
+// Download route with global cache
 app.get('/download', async (req: Request, res: Response) => {
   const { url } = req.query;
 
@@ -101,14 +101,14 @@ app.get('/download', async (req: Request, res: Response) => {
     return;
   }
 
-  // Check cache
-  if (cache.has(videoId)) {
-    console.log('Serving from cache:', videoId);
-    res.json(cache.get(videoId));
+  // Check global cache
+  if (globalCache.has(videoId)) {
+    console.log('Serving from global cache');
+    res.json(globalCache.get(videoId));
     return;
   }
 
-  let retries = 5;
+  let retries = 3;
   let success = false;
   let response = null;
 
@@ -129,7 +129,7 @@ app.get('/download', async (req: Request, res: Response) => {
       response = await axios.request(options);
       if (response.data && response.data.link) {
         success = true;
-        cache.set(videoId, response.data); // Store result in cache
+        globalCache.set(videoId, response.data); // Store result in global cache
         break;
       } else {
         throw new Error('No MP3 link found in response.');
