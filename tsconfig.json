@@ -17,9 +17,6 @@
     "noImplicitAny": true,                     // Allow implicit `any` type
     "typeRoots": ["./node_modules/@types"],     // Include type definitions from node_modules
     "baseUrl": ".",                             // Base URL for module resolution
-    "paths": {
-      "*": ["node_modules/*"]                   // Path mappings for module resolution
-    }
   },
   "include": ["src/**/*.ts"],                           // Include files in the `src` folder
   "exclude": ["node_modules", "dist"]           // Exclude unnecessary folders
