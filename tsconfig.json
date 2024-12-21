@@ -11,6 +11,7 @@
     "esModuleInterop": true,                    // Allow `import` statements with CommonJS modules
     "skipLibCheck": true,                       // Skip type checks on declaration files
     "forceConsistentCasingInFileNames": true,   // Enforce case-sensitive imports
+    "removeComments": true,
     "resolveJsonModule": true,                  // Allow importing JSON files
     "moduleResolution": "node",                // Use Node.js module resolution
     "allowSyntheticDefaultImports": true,      // Support default imports from CommonJS modules
