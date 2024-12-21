@@ -1,19 +1,35 @@
-import express, { Application, Request, Response } from 'express';
+import express, { Request, Response } from 'express';
 import compression from 'compression';
 import axios, { AxiosRequestConfig } from 'axios';
-import cors from 'cors';
+import fs from 'fs';
+import zlib from 'zlib';
+import path from 'path';
 
-const app:Application = express();
+const app = express();
 const port = 3000;
-// Enable CORS
-app.use(cors({ origin: '*' }));
+
 // Enable JSON parsing
 app.use(express.json());
+
 // Enable compression for all responses
 app.use(compression());
 
-// In-memory cache with Map for global caching
-const globalCache = new Map<string, any>();
+// Path to the cache file
+const cacheFilePath = path.join(__dirname, 'cache.json.gz');
+
+// Helper function: Load cache from gzip file
+const loadCache = (): Record<string, string> => {
+  if (!fs.existsSync(cacheFilePath)) return {};
+  const compressedData = fs.readFileSync(cacheFilePath);
+  const decompressedData = zlib.gunzipSync(compressedData).toString('utf-8');
+  return JSON.parse(decompressedData);
+};
+
+// Helper function: Save cache to gzip file
+const saveCache = (cache: Record<string, string>) => {
+  const compressedData = zlib.gzipSync(JSON.stringify(cache));
+  fs.writeFileSync(cacheFilePath, compressedData);
+};
 
 // API keys and rotation logic
 const apiKeys: string[] = [
@@ -27,17 +43,11 @@ let currentKeyIndex = 0;
 const getNextApiKey = (): string => apiKeys[(currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length)];
 
 const youtube_parser = (url: string): string | false => {
-  // Remove the '?si=...' parameter if present
   url = url.replace(/\?si=.*/, '');
-
-  // Regular expression to match YouTube and Music YouTube URLs
-  const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?v=)|(music.youtube.com\/watch\?v=))([^#&?]*).*/;
-
-  // Match the URL and validate the video ID
+  const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
   const match = url.match(regExp);
-  return match && match[8]?.length === 11 ? match[8] : false;
+  return match && match[7]?.length === 11 ? match[7] : false;
 };
-
 
 // Serve the dashboard
 app.get('/', (_req: Request, res: Response) => {
@@ -93,7 +103,7 @@ app.get('/', (_req: Request, res: Response) => {
   res.send(html);
 });
 
-// Download route with global cache
+// Download route
 app.get('/dl', async (req: Request, res: Response) => {
   const { url } = req.query;
 
@@ -108,16 +118,18 @@ app.get('/dl', async (req: Request, res: Response) => {
     return;
   }
 
-  // Check global cache
-  if (globalCache.has(videoId)) {
-    console.log('Serving from global cache');
-    res.json(globalCache.get(videoId));
+  // Load cache
+  const cache = loadCache();
+
+  // Check cache
+  if (cache[videoId]) {
+    res.json({ link: cache[videoId] });
     return;
   }
 
-  let retries = 3;
+  let retries = 4;
   let success = false;
-  let response = null;
+  let mp3Link = '';
 
   while (retries > 0 && !success) {
     const apiKey = getNextApiKey();
@@ -133,10 +145,14 @@ app.get('/dl', async (req: Request, res: Response) => {
     };
 
     try {
-      response = await axios.request(options);
+      const response = await axios.request(options);
       if (response.data && response.data.link) {
         success = true;
-        globalCache.set(videoId, response.data); // Store result in global cache
+        mp3Link = response.data.link;
+
+        // Save to cache
+        cache[videoId] = mp3Link;
+        saveCache(cache);
         break;
       } else {
         throw new Error('No MP3 link found in response.');
@@ -147,8 +163,8 @@ app.get('/dl', async (req: Request, res: Response) => {
     }
   }
 
-  if (success && response) {
-    res.json(response.data);
+  if (success) {
+    res.json({ link: mp3Link });
   } else {
     res.status(500).json({ error: 'Failed to fetch MP3 after multiple attempts.' });
   }
