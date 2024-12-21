@@ -1,8 +1,8 @@
-import express, { Request, Response } from 'express';
+import express, { Application, Request, Response } from 'express';
 import compression from 'compression';
 import axios, { AxiosRequestConfig } from 'axios';
 
-const app = express();
+const app:Application = express();
 const port = 3000;
 
 // Enable JSON parsing
