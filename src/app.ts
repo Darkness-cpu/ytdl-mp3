@@ -129,7 +129,7 @@ app.get('/download', async (req: Request, res: Response) => {
       response = await axios.request(options);
       if (response.data && response.data.link) {
         success = true;
-        cache.set(videoId, response.data.link); // Store result in cache
+        cache.set(videoId, response.data); // Store result in cache
         break;
       } else {
         throw new Error('No MP3 link found in response.');
@@ -141,7 +141,7 @@ app.get('/download', async (req: Request, res: Response) => {
   }
 
   if (success && response) {
-    res.json(response.data.link);
+    res.json(response.data);
   } else {
     res.status(500).json({ error: 'Failed to fetch MP3 after multiple attempts.' });
   }
