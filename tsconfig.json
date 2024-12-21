@@ -2,8 +2,8 @@
   "compilerOptions": {
     "target": "ES2020",                         // Target modern JavaScript
     "module": "CommonJS",                       // Use CommonJS for Node.js compatibility
-    "rootDir": "src",
-    "outFile": "./../app.js",                         // Output folder for compiled JavaScript files
+    "rootDir": "./src",
+    "outDir": "./dist",                         // Output folder for compiled JavaScript files
     "allowJs": true,
     "checkJs": true,
     "maxNodeModuleJsDepth": 1,
