@@ -3,14 +3,14 @@
     "charset": "utf8",
     "target": "ES2020",                         // Target modern JavaScript
     "module": "CommonJS",                       // Use CommonJS for Node.js compatibility
-    "rootDir": "./src",
+    "rootDir": "src",
     "outFile": "./../app.js",                         // Output folder for compiled JavaScript files
     "allowJs": true,
     "checkJs": true,
     "maxNodeModuleJsDepth": 1,
     "strict": true,                             // Enable all strict type-checking options
     "esModuleInterop": true,                    // Allow `import` statements with CommonJS modules
-    "skipLibCheck": false,                       // Skip type checks on declaration files
+    "skipLibCheck": true,                       // Skip type checks on declaration files
     "forceConsistentCasingInFileNames": true,   // Enforce case-sensitive imports
     "resolveJsonModule": true,                  // Allow importing JSON files
     "moduleResolution": "node",                // Use Node.js module resolution
