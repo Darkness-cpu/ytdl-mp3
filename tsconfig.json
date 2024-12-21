@@ -3,7 +3,8 @@
     "charset": "utf8",
     "target": "ES2020",                         // Target modern JavaScript
     "module": "CommonJS",                       // Use CommonJS for Node.js compatibility
-    "outFile": "app.js",                         // Output folder for compiled JavaScript files
+    "rootDir": "./src",
+    "outFile": "./../app.js",                         // Output folder for compiled JavaScript files
     "allowJs": true,
     "checkJs": true,
     "maxNodeModuleJsDepth": 1,
@@ -21,6 +22,6 @@
       "*": ["node_modules/*"]                   // Path mappings for module resolution
     }
   },
-  "include": ["*.ts"],                           // Include files in the `src` folder
+  "include": ["src/**/*.ts"],                           // Include files in the `src` folder
   "exclude": ["node_modules", "dist"]           // Exclude unnecessary folders
 }
