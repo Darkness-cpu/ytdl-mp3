@@ -1,13 +1,14 @@
 import express, { Application, Request, Response } from 'express';
 import compression from 'compression';
 import axios, { AxiosRequestConfig } from 'axios';
+import cors from 'cors';
 
 const app:Application = express();
 const port = 3000;
 
+app.use(cors({ origin: '*' }));
 // Enable JSON parsing
 app.use(express.json());
-
 // Enable compression for all responses
 app.use(compression());
 
@@ -26,11 +27,17 @@ let currentKeyIndex = 0;
 const getNextApiKey = (): string => apiKeys[(currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length)];
 
 const youtube_parser = (url: string): string | false => {
+  // Remove the '?si=...' parameter if present
   url = url.replace(/\?si=.*/, '');
-  const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+
+  // Regular expression to match YouTube and Music YouTube URLs
+  const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?v=)|(music.youtube.com\/watch\?v=))([^#&?]*).*/;
+
+  // Match the URL and validate the video ID
   const match = url.match(regExp);
-  return match && match[7]?.length === 11 ? match[7] : false;
+  return match && match[8]?.length === 11 ? match[8] : false;
 };
+
 
 // Serve the dashboard
 app.get('/', (_req: Request, res: Response) => {
