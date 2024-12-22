@@ -49,7 +49,7 @@ const youtube_parser = (url: string): string | false => {
   return match && match[7]?.length === 11 ? match[7] : false;
 };
 
-// Serve the dashboard
+//* Serve the dashboard
 app.get('/', (_req: Request, res: Response) => {
   const html = `
     <!DOCTYPE html>
