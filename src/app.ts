@@ -12,7 +12,21 @@ const port = 3000;
 app.use(express.json());
 
 // Enable compression for all responses
-app.use(compression());
+app.use(
+  compression({
+    level: 6, // Compression level (0-9), default is -1 (node default)
+    threshold: 1024, // Compress responses only if size > 1KB
+    filter: (req, res) => {
+      if (req.headers['x-no-compression']) {
+        // Don't compress responses if this header is present
+        return false;
+      }
+      // Compress responses otherwise
+      return compression.filter(req, res);
+    },
+  })
+);
+
 
 // Path to the cache file
 const cacheFilePath = path.join(__dirname, 'cache.json.gz');
