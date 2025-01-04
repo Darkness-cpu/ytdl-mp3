@@ -5,7 +5,9 @@
   "type": "commonjs",
   "main": "./dist/app.js",
   "scripts": {
-    "prod": "node ."
+    "start": "node .",
+    "dev": "tsx watch ./src/app.ts",
+    "dev": "tsc -b & nodemon ."
   },
   "author": "Darkness-cpu",
   "license": "MIT",
@@ -20,15 +22,14 @@
   ],
   "dependencies": {
     "axios": "latest",
-    "cors": "latest",
     "compression": "latest",
     "express": "latest"
   },
   "devDependencies": {
-    "@types/cors": "latest",
     "@types/compression": "latest",
     "@types/express": "latest",
-    "@types/node": "latest",
-    "typescript": "latest"
+    "@types/node": "^22",
+    "typescript": "latest",
+    "tsx": "latest"
   }
 }
