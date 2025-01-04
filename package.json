@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node .",
     "dev": "tsx watch ./src/app.ts",
-    "dev": "tsc -b & nodemon ."
+    "rc": "tsc -b & nodemon ."
   },
   "author": "Darkness-cpu",
   "license": "MIT",
