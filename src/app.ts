@@ -1,11 +1,11 @@
-import express, { Request, Response } from 'express';
+import express, { Application, Request, Response } from 'express';
 import compression from 'compression';
 import axios, { AxiosRequestConfig } from 'axios';
 import fs from 'fs';
 import zlib from 'zlib';
 import path from 'path';
 
-const app = express();
+const app:Application = express();
 const port = 3000;
 
 // Enable JSON parsing
@@ -25,9 +25,9 @@ const loadCache = (): Record<string, string> => {
   return JSON.parse(decompressedData);
 };
 
-// Helper function: Save cache to gzip file
+// Helper function: Save cache to gzip file with compression level 9
 const saveCache = (cache: Record<string, string>) => {
-  const compressedData = zlib.gzipSync(JSON.stringify(cache));
+  const compressedData = zlib.gzipSync(JSON.stringify(cache), { level: 9 });
   fs.writeFileSync(cacheFilePath, compressedData);
 };
 
@@ -50,7 +50,7 @@ const youtube_parser = (url: string): string | false => {
 };
 
 // Serve the dashboard
-app.get('/', (_req: Request, res: Response) => {
+app.get('/dashboard', (_req: Request, res: Response) => {
   const html = `
     <!DOCTYPE html>
     <html lang="en">
@@ -73,7 +73,7 @@ app.get('/', (_req: Request, res: Response) => {
       <h1>YouTube MP3 Downloader</h1>
       <p>Enter a YouTube URL to download the MP3</p>
       <input type="text" id="youtubeUrl" placeholder="Enter YouTube URL">
-      <button onclick="downloadMp3()">Search</button>
+      <button onclick="downloadMp3()">Download MP3</button>
       <p id="result"></p>
       <footer>Dev by <a href="https://github.com/mistakes333" target="_blank">mistakes333</a></footer>
       <script>
@@ -85,10 +85,10 @@ app.get('/', (_req: Request, res: Response) => {
           }
           document.getElementById('result').innerText = 'Processing...';
           try {
-            const response = await fetch(\`/dl?url=\${encodeURIComponent(url)}\`);
+            const response = await fetch(\`/download?url=\${encodeURIComponent(url)}\`);
             const data = await response.json();
             if (data.link) {
-              document.getElementById('result').innerHTML = \`<a href="\${data.link}" target="_blank">Download</a>\`;
+              document.getElementById('result').innerHTML = \`<a href="\${data.link}" target="_blank">Download MP3</a>\`;
             } else {
               document.getElementById('result').innerText = 'Failed to get the MP3 link.';
             }
@@ -104,7 +104,7 @@ app.get('/', (_req: Request, res: Response) => {
 });
 
 // Download route
-app.get('/dl', async (req: Request, res: Response) => {
+app.get('/download', async (req: Request, res: Response) => {
   const { url } = req.query;
 
   if (!url || typeof url !== 'string') {
