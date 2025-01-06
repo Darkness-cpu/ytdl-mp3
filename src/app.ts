@@ -62,7 +62,7 @@ const youtube_parser = (url: string): string | false => {
 
 // Serve dashboard
 app.get('/', (_req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, 'dashboard.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Download route
