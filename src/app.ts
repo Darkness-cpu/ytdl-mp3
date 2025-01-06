@@ -73,7 +73,7 @@ app.get('/dashboard', (_req: Request, res: Response) => {
       <h1>YouTube MP3 Downloader</h1>
       <p>Enter a YouTube URL to download the MP3</p>
       <input type="text" id="youtubeUrl" placeholder="Enter YouTube URL">
-      <button onclick="downloadMp3()">Download MP3</button>
+      <button onclick="downloadMp3()">Search</button>
       <p id="result"></p>
       <footer>Dev by <a href="https://github.com/mistakes333" target="_blank">mistakes333</a></footer>
       <script>
@@ -85,10 +85,10 @@ app.get('/dashboard', (_req: Request, res: Response) => {
           }
           document.getElementById('result').innerText = 'Processing...';
           try {
-            const response = await fetch(\`/download?url=\${encodeURIComponent(url)}\`);
+            const response = await fetch(\`/dl?url=\${encodeURIComponent(url)}\`);
             const data = await response.json();
             if (data.link) {
-              document.getElementById('result').innerHTML = \`<a href="\${data.link}" target="_blank">Download MP3</a>\`;
+              document.getElementById('result').innerHTML = \`<a href="\${data.link}" target="_blank">Download</a>\`;
             } else {
               document.getElementById('result').innerText = 'Failed to get the MP3 link.';
             }
@@ -104,7 +104,7 @@ app.get('/dashboard', (_req: Request, res: Response) => {
 });
 
 // Download route
-app.get('/download', async (req: Request, res: Response) => {
+app.get('/dl', async (req: Request, res: Response) => {
   const { url } = req.query;
 
   if (!url || typeof url !== 'string') {
@@ -128,7 +128,7 @@ app.get('/download', async (req: Request, res: Response) => {
     return;
   }
 
-  let retries = 3;
+  let retries = 4;
   let success = false;
   let mp3Link = '';
 
