@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube MP3 Downloader</title>
+  <style>
+    /* General Styles */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      color: #4CAF50;
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 1rem;
+      margin: 0;
+    }
+
+    /* Form Styles */
+    .form-container {
+      width: 90%;
+      max-width: 400px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    label {
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+      display: block;
+      color: #555;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #4CAF50;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #45a049;
+    }
+
+    .result {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .result a {
+      color: #4CAF50;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .result a:hover {
+      text-decoration: underline;
+    }
+
+    /* Mobile Responsiveness */
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 1.5rem;
+      }
+
+      p {
+        font-size: 0.9rem;
+      }
+
+      button {
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>YouTube MP3 Downloader</h1>
+    <p>Convert YouTube videos to MP3 format easily</p>
+  </header>
+  <div class="form-container">
+    <form id="download-form">
+      <label for="youtube-url">Enter YouTube URL:</label>
+      <input type="text" id="youtube-url" placeholder="e.g., https://youtu.be/dQw4w9WgXcQ" required>
+      <button type="submit">Get MP3 Link</button>
+    </form>
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('download-form');
+    const resultDiv = document.getElementById('result');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const url = document.getElementById('youtube-url').value;
+
+      if (!url) {
+        alert('Please enter a valid YouTube URL.');
+        return;
+      }
+
+      resultDiv.innerHTML = 'Fetching download link...';
+
+      try {
+        const response = await fetch(`/download?url=${encodeURIComponent(url)}`);
+        const data = await response.json();
+
+        if (response.ok) {
+          resultDiv.innerHTML = `
+            <p>Download your MP3:</p>
+            <a href="${data.link}" target="_blank">Click here to download</a>
+          `;
+        } else {
+          resultDiv.innerHTML = `<p style="color: red;">Error: ${data.error}</p>`;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<p style="color: red;">Failed to fetch MP3 link. Try again later.</p>`;
+      }
+    });
+  </script>
+</body>
+</html>
