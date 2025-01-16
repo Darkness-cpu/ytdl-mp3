@@ -9,7 +9,7 @@
     "maxNodeModuleJsDepth": 1,
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": false,
+    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "removeComments": true,
     "resolveJsonModule": true,
