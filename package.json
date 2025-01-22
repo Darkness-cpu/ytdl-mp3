@@ -3,11 +3,9 @@
   "version": "1.0.0",
   "description": "A web API for downloading YouTube videos as MP3 files using JavaScript and RapidAPI.",
   "type": "commonjs",
-  "main": "./dist/app.js",
+  "main": "./app.js",
   "scripts": {
-    "start": "node .",
-    "dev": "tsx watch ./src/app.ts",
-    "rc": "tsc -b & nodemon ."
+    "start": "node ."
   },
   "author": "Darkness-cpu",
   "license": "MIT",
@@ -26,10 +24,6 @@
     "express": "latest"
   },
   "devDependencies": {
-    "@types/compression": "latest",
-    "@types/express": "latest",
-    "@types/node": "^22",
-    "typescript": "latest",
-    "tsx": "latest"
+    "nodemon": "latest"
   }
 }
