@@ -2,7 +2,6 @@
   "name": "youtube-mp3-downloader",
   "version": "1.0.0",
   "description": "A web API for downloading YouTube videos as MP3 files using JavaScript and RapidAPI.",
-  "type": "commonjs",
   "main": "./src/index.rs",
   "scripts": {
     "start": "tsx src/index.ts"
@@ -24,6 +23,9 @@
     "express": "latest"
   },
   "devDependencies": {
+    "@types/node": "latest",
+    "@types/express": "latest",
+    "@types/compression": "latest",
     "nodemon": "latest",
     "tsx": "latest"
   }
