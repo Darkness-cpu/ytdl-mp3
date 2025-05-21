@@ -1,32 +1,37 @@
 {
   "name": "youtube-mp3-downloader",
   "version": "1.0.0",
-  "description": "A web API for downloading YouTube videos as MP3 files using JavaScript and RapidAPI.",
-  "main": "./src/index.ts",
+  "description": "A Node.js application to download MP3s from YouTube URLs using Express and RapidAPI",
+  "main": "dist/index.js",
+  "type": "module",
   "scripts": {
-    "start": "tsx src/index.ts"
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint . --ext .ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Darkness-cpu",
-  "license": "MIT",
   "keywords": [
     "youtube",
     "mp3",
     "downloader",
-    "javascript",
     "express",
-    "compression",
-    "nodejs"
+    "typescript",
+    "rapidapi"
   ],
+  "author": "mistakes333",
+  "license": "MIT",
   "dependencies": {
     "axios": "latest",
     "compression": "latest",
-    "express": "latest"
+    "express": "^5"
   },
   "devDependencies": {
-    "@types/node": "latest",
-    "@types/express": "latest",
     "@types/compression": "latest",
-    "nodemon": "latest",
-    "tsx": "latest"
+    "@types/express": "^5",
+    "@typescript-eslint/eslint-plugin": "^6",
+    "@typescript-eslint/parser": "^6",
+    "eslint": "^8",
+    "typescript": "^5"
   }
 }
