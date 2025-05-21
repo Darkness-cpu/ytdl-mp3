@@ -2,7 +2,7 @@
   "name": "youtube-mp3-downloader",
   "version": "1.0.0",
   "description": "A simple YouTube MP3 downloader using Express and RapidAPI",
-  "main": "index.js",
+  "main": "app.js",
   "type": "commonjs",
   "scripts": {
     "start": "node ."
