@@ -1,16 +1,37 @@
 const express = require('express');
 const compression = require('compression');
 const axios = require('axios');
+const fs = require('fs');
+const zlib = require('zlib');
+const path = require('path');
 
-// Initialize the app
 const app = express();
 const port = 3000;
 
-// Middleware
-app.use(compression());
+// Enable JSON parsing
 app.use(express.json());
 
-// API Key Rotation
+// Enable compression for all responses
+app.use(compression());
+
+// Path to the cache file
+const cacheFilePath = path.join(__dirname, 'cache.json.gz');
+
+// Helper function: Load cache from gzip file
+const loadCache = () => {
+  if (!fs.existsSync(cacheFilePath)) return {};
+  const compressedData = fs.readFileSync(cacheFilePath);
+  const decompressedData = zlib.gunzipSync(compressedData).toString('utf-8');
+  return JSON.parse(decompressedData);
+};
+
+// Helper function: Save cache to gzip file with compression level 9
+const saveCache = (cache) => {
+  const compressedData = zlib.gzipSync(JSON.stringify(cache), { level: 9 });
+  fs.writeFileSync(cacheFilePath, compressedData);
+};
+
+// API keys and rotation logic
 const apiKeys = [
   'db751b0a05msh95365b14dcde368p12dbd9jsn440b1b8ae7cb',
   '0649dc83c2msh88ac949854b30c2p1f2fe8jsn871589450eb3',
@@ -18,16 +39,12 @@ const apiKeys = [
   'ea7a66dfaemshecacaabadeedebbp17b247jsn7966d78a3945',
 ];
 let currentKeyIndex = 0;
+
 const getNextApiKey = () => {
   currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length;
   return apiKeys[currentKeyIndex];
 };
 
-// Cache and Usage Tracking
-const cache = new Map();
-const apiKeyUsage = new Map(apiKeys.map((key) => [key, 0]));
-
-// YouTube ID Parser
 const youtube_parser = (url) => {
   url = url.replace(/\?si=.*/, '');
   const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
@@ -35,10 +52,8 @@ const youtube_parser = (url) => {
   return match && match[7]?.length === 11 ? match[7] : false;
 };
 
-// Routes
-
-// Dashboard
-app.get('/', (req, res) => {
+// Serve the dashboard
+app.get('/', (_req, res) => {
   const html = `
     <!DOCTYPE html>
     <html lang="en">
@@ -61,7 +76,7 @@ app.get('/', (req, res) => {
       <h1>YouTube MP3 Downloader</h1>
       <p>Enter a YouTube URL to download the MP3</p>
       <input type="text" id="youtubeUrl" placeholder="Enter YouTube URL">
-      <button onclick="downloadMp3()">Search</button>
+      <button onclick="downloadMp3()">Download MP3</button>
       <p id="result"></p>
       <footer>Dev by <a href="https://github.com/mistakes333" target="_blank">mistakes333</a></footer>
       <script>
@@ -76,7 +91,7 @@ app.get('/', (req, res) => {
             const response = await fetch(\`/download?url=\${encodeURIComponent(url)}\`);
             const data = await response.json();
             if (data.link) {
-              document.getElementById('result').innerHTML = \`<a href="\${data.link}" target="_blank">Download</a>\`;
+              document.getElementById('result').innerHTML = \`<a href="\${data.link}" target="_blank">Download MP3</a>\`;
             } else {
               document.getElementById('result').innerText = 'Failed to get the MP3 link.';
             }
@@ -91,130 +106,80 @@ app.get('/', (req, res) => {
   res.send(html);
 });
 
-// Download Endpoint
+// Download route
 app.get('/download', async (req, res) => {
   const { url } = req.query;
+
   if (!url || typeof url !== 'string') {
-    return res.status(400).json({ error: 'Invalid URL parameter' });
+    res.status(400).json({ error: 'Missing YouTube URL' });
+    return;
   }
 
   const videoId = youtube_parser(url);
   if (!videoId) {
-    return res.status(400).json({ error: 'Invalid YouTube URL' });
+    res.status(400).json({ error: 'Invalid YouTube URL' });
+    return;
   }
 
-  // Check Cache
-  if (cache.has(videoId)) {
-    return res.json({ success: true, cached: true, link: cache.get(videoId) });
+  // Load cache
+  const cache = loadCache();
+
+  // Check cache
+  if (cache[videoId]) {
+    console.log('Serving from cache');
+    res.json({ link: cache[videoId] });
+    return;
   }
 
-  const apiKey = getNextApiKey();
-  const options = {
-    method: 'GET',
-    url: 'https://youtube-mp36.p.rapidapi.com/dl',
-    params: { id: videoId },
-    headers: {
-      'x-rapidapi-key': apiKey,
-      'x-rapidapi-host': 'youtube-mp36.p.rapidapi.com',
-    },
-  };
+  let retries = 3;
+  let success = false;
+  let mp3Link = '';
 
-  try {
-    const response = await axios.request(options);
-    const { link } = response.data;
+  while (retries > 0 && !success) {
+    const apiKey = getNextApiKey();
+    const options = {
+      method: 'GET',
+      url: 'https://youtube-mp36.p.rapidapi.com/dl',
+      params: { id: videoId },
+      headers: {
+        'x-rapidapi-key': apiKey,
+        'x-rapidapi-host': 'youtube-mp36.p.rapidapi.com',
+      },
+      timeout: 5000,
+    };
 
-    if (link) {
-      cache.set(videoId, link);
-      apiKeyUsage.set(apiKey, (apiKeyUsage.get(apiKey) || 0) + 1);
-      return res.json({ success: true, cached: false, link });
-    } else {
-      throw new Error('Invalid response from API');
+    try {
+      const response = await axios.request(options);
+      if (response.data && response.data.link) {
+        success = true;
+        mp3Link = response.data.link;
+
+        // Save to cache
+        cache[videoId] = mp3Link;
+        saveCache(cache);
+        break;
+      } else {
+        throw new Error('No MP3 link found in response.');
+      }
+    } catch (error) {
+      console.error(`Attempt failed with API key: ${apiKey} - ${error.message}`);
+      retries--;
     }
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: 'Failed to fetch download link' });
+  }
+
+  if (success) {
+    res.json({ link: mp3Link });
+  } else {
+    res.status(500).json({ error: 'Failed to fetch MP3 after multiple attempts.' });
   }
 });
 
-// Stats Page
-app.get('/stats', (_req, res) => {
-  const stats = {
-    cachedItems: cache.size,
-    apiKeyUsage: Array.from(apiKeyUsage.entries()).map(([key, count]) => ({
-      key,
-      count,
-    })),
-  };
-
-  const html = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Server Statistics</title>
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          background-color: #f4f4f9;
-          text-align: center;
-          margin: 0;
-          padding: 20px;
-        }
-        .stats {
-          max-width: 600px;
-          margin: auto;
-          padding: 20px;
-          background: white;
-          border-radius: 8px;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .stat-item {
-          display: flex;
-          justify-content: space-between;
-          padding: 10px;
-          border-bottom: 1px solid #eee;
-        }
-        .stat-item:last-child {
-          border-bottom: none;
-        }
-        footer {
-          margin-top: 20px;
-          color: gray;
-        }
-        footer a {
-          color: #007BFF;
-          text-decoration: none;
-        }
-      </style>
-    </head>
-    <body>
-      <h1>Server Statistics</h1>
-      <div class="stats">
-        <div class="stat-item">
-          <span>Cached Items:</span>
-          <span>${stats.cachedItems}</span>
-        </div>
-        ${stats.apiKeyUsage
-          .map(
-            ({ key, count }) => `
-            <div class="stat-item">
-              <span>${key}</span>
-              <span>${count}</span>
-            </div>
-          `
-          )
-          .join('')}
-      </div>
-      <footer>Dev by <a href="https://github.com/mistakes333" target="_blank">mistakes333</a></footer>
-    </body>
-    </html>
-  `;
-
-  res.send(html);
+// Handle undefined routes
+app.use((_req, res) => {
+  res.status(404).send('Not Found');
 });
 
-// Start Server
+// Start the server
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
